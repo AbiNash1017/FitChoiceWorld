@@ -74,7 +74,7 @@ export default function Onboard() {
         setProcessing(true)
         const fdob = new Date(dob).toISOString()
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/onboardOwner`, {
+            const response = await fetch(`/api/auth/onboardOwner`, {
                 method: "POST",
                 credentials: 'include',
                 headers: {
