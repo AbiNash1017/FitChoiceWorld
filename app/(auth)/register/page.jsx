@@ -8,30 +8,161 @@ import Logo from '@/public/images/fcw_transparent.png'
 import Image from "next/image";
 import { checkCookies } from "@/lib/utils";
 import supabase from "@/lib/supabase";
+import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
+import { auth } from "@/firebaseConfig";
 
 export default function Login() {
-    const [email_id, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
-    const [role, setRole] = useState("Owner");
+    // const [email_id, setEmail] = useState("");
+    // const [password, setPassword] = useState("");
+    // const [confirmPassword, setConfirmPassword] = useState("");
+    // const [role, setRole] = useState("Owner");
+
+    const [phoneNumber, setPhoneNumber] = useState("");
+    const [otp, setOtp] = useState("");
+    const [confirmationResult, setConfirmationResult] = useState(null);
+    const [showOtpInput, setShowOtpInput] = useState(false);
+    const [timer, setTimer] = useState(60);
+    const [canResend, setCanResend] = useState(false);
+
     const [error, setError] = useState(null);
     const [processing, setProcessing] = useState(false);
     const router = useRouter();
 
+    useEffect(() => {
+        let interval;
+        if (showOtpInput && timer > 0) {
+            interval = setInterval(() => {
+                setTimer((prev) => prev - 1);
+            }, 1000);
+        } else if (timer === 0) {
+            setCanResend(true);
+        }
+        return () => clearInterval(interval);
+    }, [showOtpInput, timer]);
+
+    useEffect(() => {
+        // Initialize RecaptchaVerifier on mount
+        if (!window.recaptchaVerifier) {
+            try {
+                window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+                    'size': 'invisible',
+                    'callback': (response) => {
+                        // reCAPTCHA solved, allow signInWithPhoneNumber.
+                    },
+                    'expired-callback': () => {
+                        // Response expired. Ask user to solve reCAPTCHA again.
+                        console.log("Recaptcha expired");
+                    }
+                });
+            } catch (err) {
+                console.error("Recaptcha init error:", err);
+                if (window.recaptchaVerifier) {
+                    window.recaptchaVerifier.clear();
+                    window.recaptchaVerifier = null;
+                }
+            }
+        }
+
+        return () => {
+            // Cleanup on unmount
+            if (window.recaptchaVerifier) {
+                try {
+                    window.recaptchaVerifier.clear();
+                } catch (e) {
+                    console.error("Error clearing recaptcha", e);
+                }
+                window.recaptchaVerifier = null;
+            }
+        };
+    }, []);
+
+    const onSignUpSubmit = async (e) => {
+        e.preventDefault();
+        if (processing) return;
+        setProcessing(true);
+        setError(null);
+
+        // setupRecaptcha is now handled in useEffect
+        const appVerifier = window.recaptchaVerifier;
+
+        if (!appVerifier) {
+            setError("Recaptcha not initialized. Please refresh the page.");
+            setProcessing(false);
+            return;
+        }
+
+        const phoneNumberToUse = phoneNumber;
+
+        signInWithPhoneNumber(auth, phoneNumberToUse, appVerifier)
+            .then((confirmationResult) => {
+                window.confirmationResult = confirmationResult;
+                setConfirmationResult(confirmationResult);
+                setShowOtpInput(true);
+                setProcessing(false);
+                setTimer(60);
+                setCanResend(false);
+            }).catch((error) => {
+                console.error(error);
+                setError(error.message);
+                setProcessing(false);
+                if (window.recaptchaVerifier) {
+                    // window.recaptchaVerifier.clear();
+                    // window.recaptchaVerifier = null;
+                }
+            });
+    };
+
+    const onOtpVerify = async (e) => {
+        e.preventDefault();
+        if (processing) return;
+        setProcessing(true);
+        setError(null);
+
+        confirmationResult.confirm(otp).then(async (result) => {
+            const user = result.user;
+            console.log("User signed up:", user);
+
+            // Sync user to MongoDB
+            try {
+                await fetch('/api/auth/sync', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        uid: user.uid,
+                        phoneNumber: user.phoneNumber,
+                    }),
+                });
+            } catch (error) {
+                console.error("Failed to sync user:", error);
+            }
+
+            // Redirect to onboard as per original flow
+            router.push('/onboard');
+        }).catch((error) => {
+            console.error(error);
+            setError("Invalid OTP");
+            setProcessing(false);
+        });
+    };
+
+
+    /*
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (processing) return;
         setProcessing(true)
         setError(null);
-
+    
         if (confirmPassword !== password) {
             setError("Passwords do not match!")
             setProcessing(false)
             return;
         }
-
+    
         try {
-
+    
             const auth = await supabase.auth.signUp({
                 email: email_id,
                 password: password,
@@ -79,6 +210,7 @@ export default function Login() {
         }
         setProcessing(false)
     };
+    */
 
     return (
         <div className="min-h-screen flex bg-black">
@@ -144,6 +276,51 @@ export default function Login() {
                     </div>
 
                     <div className="space-y-4">
+                        {!showOtpInput ? (
+                            <form onSubmit={onSignUpSubmit} className="space-y-4">
+                                <Input
+                                    type="tel"
+                                    placeholder="Phone Number (e.g., +1234567890)"
+                                    value={phoneNumber}
+                                    onChange={(e) => setPhoneNumber(e.target.value)}
+                                    required
+                                    className="bg-white/80  placeholder:text-gray-500"
+                                />
+                                <div id="recaptcha-container"></div>
+                                {error && <p style={{ color: "red" }}>{error}</p>}
+                                <div className="flex flex-col justify-between items-end">
+                                    <Button type="submit" disabled={processing} className="w-full bg-red-700 hover:bg-red-800 mt-4 text-white">
+                                        {processing ? "Sending..." : "Send OTP"}
+                                    </Button>
+                                </div>
+                            </form>
+                        ) : (
+                            <form onSubmit={onOtpVerify} className="space-y-4">
+                                <Input
+                                    type="text"
+                                    placeholder="Enter OTP"
+                                    value={otp}
+                                    onChange={(e) => setOtp(e.target.value)}
+                                    required
+                                    className="bg-white/80  placeholder:text-gray-500"
+                                />
+                                {error && <p style={{ color: "red" }}>{error}</p>}
+                                <div className="flex flex-col justify-between items-end">
+                                    <Button type="submit" disabled={processing} className="w-full bg-red-700 hover:bg-red-800 mt-4 text-white">
+                                        {processing ? "Verifying..." : "Verify OTP"}
+                                    </Button>
+                                    <div className="mt-2 text-gray-300 text-sm">
+                                        {timer > 0 ? `Resend OTP in ${timer}s` : (
+                                            <button type="button" onClick={onSignUpSubmit} className="text-red-600 hover:underline">
+                                                Resend OTP
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </form>
+                        )}
+
+                        {/* Original Form (Commented out)
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <Input
                                 type="email"
@@ -170,10 +347,11 @@ export default function Login() {
                                 className="bg-white/80  placeholder:text-gray-500"
                             />
                             {/* <select value={role} onChange={(e) => setRole(e.target.value)} className="w-full rounded-md border p-2 text-sm bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"> */}
-                            {/* <option value="defaultopt">Select role</option> */}
-                            {/* <option value="vendor">Vendor</option>
+                        {/* <option value="defaultopt">Select role</option> */}
+                        {/* <option value="vendor">Vendor</option>
                         <option value="admin">Admin</option> */}
-                            {/* </select> */}
+                        {/* </select> */}
+                        {/*
                             {error && <p style={{ color: "red" }}>{error}</p>}
                             <div>
                                 <Button disabled={processing} type="submit" className="w-full mt-3 bg-red-700 hover:bg-red-800 text-white">
@@ -181,6 +359,7 @@ export default function Login() {
                                 </Button>
                             </div>
                         </form>
+                        */}
                     </div>
                 </div>
             </div>
