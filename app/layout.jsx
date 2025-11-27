@@ -2,6 +2,7 @@ import { DM_Sans, Inter } from "next/font/google";
 import "./globals.css";
 import { twMerge } from "tailwind-merge";
 import { FitnessCentreProvider } from "./context/FitnessCentreContext";
+import { AuthProvider } from "./context/AuthContext";
 
 // const dmsans= DM_Sans({subsets: ['latin']})
 
@@ -21,13 +22,15 @@ export default function RootLayout({
 }) {
     return (
         <html lang="en">
-            <FitnessCentreProvider>
-                <body
-                    className={twMerge(inter.className, "antialiased bg-[#EAEEFE]")}
-                >
-                    {children}
-                </body>
-            </FitnessCentreProvider>
+            <body
+                className={twMerge(inter.className, "antialiased bg-[#EAEEFE]")}
+            >
+                <AuthProvider>
+                    <FitnessCentreProvider>
+                        {children}
+                    </FitnessCentreProvider>
+                </AuthProvider>
+            </body>
         </html>
     );
 }

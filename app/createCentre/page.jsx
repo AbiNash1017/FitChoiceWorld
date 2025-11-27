@@ -9,7 +9,7 @@ import Image from "next/image";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-import { getUserSession } from "@/lib/auth";
+
 import { Textarea } from "@/components/ui/textarea";
 
 const states = [
@@ -270,27 +270,18 @@ export default function CreateCentre() {
     const [pincode, setPincode] = useState("");
     const [error, setError] = useState(null);
     const [planId, setPlanId] = useState(1);
-    const [authSession, setAuthSession] = useState(null)
+    const { user, loading } = useAuth();
     const router = useRouter()
     const [processing, setProcessing] = useState(false);
     const MAX_CHARS = 256
-    const setUserSession = async () => {
-        let userSession = null
-        try {
-            userSession = await getUserSession()
-            setAuthSession(userSession)
-            // console.log(userSession)
-            if (!userSession) {
-                router.push('/login')
-            }
-        } catch (error) {
-            router.push('/login')
-            return;
-        }
-    }
 
     useEffect(() => {
-        setUserSession()
+        if (!loading && !user) {
+            router.push('/login')
+        }
+    }, [user, loading, router])
+
+    useEffect(() => {
         if (!navigator.geolocation) {
             setLocation((prev) => ({
                 ...prev,
@@ -327,19 +318,8 @@ export default function CreateCentre() {
         console.log('lat', location?.latitude)
         console.log('lat', location?.longitude)
 
-        //     const cityQuery = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${location?.latitude}&lon=${location?.longitude}`, {
-        //         method: 'GET',
-        //         headers: {
-        //             'Content-Type': 'application/json',
-        //         }
-        //     })
-        //     const cityData = await cityQuery.json();
-        //     console.log("citydata", cityData)
-        //     console.log(location?.latitude)
-        // //    console.log(cityData.address.toString())
-        //     setCity(cityData.address.city)
-        //     setState(cityData.address.state)
         try {
+            const token = await user.getIdToken();
             const payload = {
                 centre_name: centreName,
                 centre_description: centreDescription,
@@ -354,12 +334,12 @@ export default function CreateCentre() {
                 contact_no
             };
             console.log(payload)
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/fitnessCentre/createFitnessCentre`, {
+            const response = await fetch(`/api/fitness-center/create`, {
                 method: "POST",
                 credentials: 'include',
                 headers: {
                     "Content-Type": "application/json",
-                    "Authorization": `Bearer ${authSession?.access_token}`
+                    "Authorization": `Bearer ${token}`
                 },
                 body: JSON.stringify(payload),
             });
@@ -537,7 +517,7 @@ export default function CreateCentre() {
                             />
                             {error && <p style={{ color: "red" }}>{error}</p>}
                             <div>
-                                <Button type="submit" disabled={!authSession?.access_token || processing} className={`w-full mt-3 bg-red-700 hover:bg-red-800 ${!authSession?.access_token && 'bg-gray-500 hover:bg-gray-700'}`}>
+                                <Button type="submit" disabled={!user || processing} className={`w-full mt-3 bg-red-700 hover:bg-red-800 ${!user && 'bg-gray-500 hover:bg-gray-700'}`}>
                                     Continue
                                 </Button>
                             </div>

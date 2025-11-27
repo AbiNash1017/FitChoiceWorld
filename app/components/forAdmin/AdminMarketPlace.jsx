@@ -6,14 +6,15 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
-import { getUserSession } from '@/lib/auth'
-import supabase from '@/lib/supabase'
+import { useAuth } from '@/app/context/AuthContext'
+import { storage } from '@/firebaseConfig'
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { Edit, Loader, Trash, Upload, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import React, { ChangeEvent, useEffect, useRef, useState } from 'react'
 
 const AdminMarketPlace = () => {
-    const [authSession, setAuthSession] = useState()
+    const { user, loading } = useAuth()
     const [products, setProducts] = useState([])
     const [newProduct, setNewProducts] = useState({
         product_name: '',
@@ -33,25 +34,15 @@ const AdminMarketPlace = () => {
     const [orders, setOrders] = useState(null);
     const router = useRouter()
 
-    const setUserSession = async () => {
-        let userSession = null
-        try {
-            userSession = await getUserSession()
-            setAuthSession(userSession)
-        } catch (error) {
-            router.push('/login')
-            return;
-        }
-    }
-
     const fetchProducts = async () => {
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/marketPlace/`, {
+            if (!user) return;
+            const token = await user.getIdToken();
+            const response = await fetch(`/api/admin/marketPlace/`, {
                 method: 'GET',
-                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authSession?.access_token}`
+                    'Authorization': `Bearer ${token}`
                 }
             })
 
@@ -70,15 +61,16 @@ const AdminMarketPlace = () => {
 
     const addProduct = async (product) => {
         try {
+            if (!user) return;
+            const token = await user.getIdToken();
             const { product_name, price, image } = product;
             console.log('Sending product:', JSON.stringify(product));
             console.log(product_name, price, image, productImage)
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/marketPlace/addItem`, {
+            const response = await fetch(`/api/admin/marketPlace/addItem`, {
                 method: 'POST',
-                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authSession?.access_token}`
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     product_name,
@@ -102,12 +94,13 @@ const AdminMarketPlace = () => {
 
     const handleDeleteProduct = async (id) => {
         console.log(id)
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/marketPlace/deleteProduct/${id}`, {
+        if (!user) return;
+        const token = await user.getIdToken();
+        const response = await fetch(`/api/admin/marketPlace/deleteProduct/${id}`, {
             method: 'DELETE',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authSession?.access_token}`
+                'Authorization': `Bearer ${token}`
             }
         })
         const data = await response.json()
@@ -122,15 +115,16 @@ const AdminMarketPlace = () => {
     const handleEditProduct = async (product) => {
         console.log(product.id)
         console.log(product)
+        if (!user) return;
+        const token = await user.getIdToken();
         let image = editImagePreview || product.image;
         const { product_name, price } = product;
         console.log(product_name, price, image)
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/marketPlace/editProduct/${product.id}`, {
+        const response = await fetch(`/api/admin/marketPlace/editProduct/${product.id}`, {
             method: 'PATCH',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authSession?.access_token}`
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({
                 product_name,
@@ -147,19 +141,12 @@ const AdminMarketPlace = () => {
             alert('error editing product')
     }
 
-    const uploadImageToSupabase = async (file, pathPrefix) => {
+    const uploadImageToFirebase = async (file, pathPrefix) => {
         try {
-            const { data: image, error } = await supabase.storage
-                .from('fitchoice-bucket')
-                .upload(`${pathPrefix}/${Date.now()}-${file.name}`, file);
-
-            if (error) throw error;
-
-            const { data: publicUrl } = supabase.storage
-                .from('fitchoice-bucket')
-                .getPublicUrl(image?.path || '');
-
-            return publicUrl?.publicUrl || null;
+            const storageRef = ref(storage, `${pathPrefix}/${Date.now()}-${file.name}`);
+            const snapshot = await uploadBytes(storageRef, file);
+            const publicUrl = await getDownloadURL(snapshot.ref);
+            return publicUrl;
         } catch (error) {
             console.error('Image upload failed:', error);
             return null;
@@ -205,7 +192,7 @@ const AdminMarketPlace = () => {
     const handleImageChange = async (e) => {
         const file = e.target.files?.[0];
         if (file) {
-            const uploadedImageUrl = await uploadImageToSupabase(file, 'products');
+            const uploadedImageUrl = await uploadImageToFirebase(file, 'products');
 
             if (uploadedImageUrl) {
                 setImagePreview(uploadedImageUrl);
@@ -222,7 +209,7 @@ const AdminMarketPlace = () => {
     const handleEditImageChange = async (e) => {
         const file = e.target.files?.[0];
         if (file) {
-            const uploadedImageUrl = await uploadImageToSupabase(file, 'products');
+            const uploadedImageUrl = await uploadImageToFirebase(file, 'products');
             if (uploadedImageUrl) {
                 setEditImagePreview(uploadedImageUrl);
                 setCurrentProducts((prev) => ({ ...prev, banner_image: uploadedImageUrl }));
@@ -234,12 +221,13 @@ const AdminMarketPlace = () => {
 
     const fetchOrders = async () => {
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/marketPlace/orders`, {
+            if (!user) return;
+            const token = await user.getIdToken();
+            const response = await fetch(`/api/admin/marketPlace/orders`, {
                 method: 'GET',
-                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authSession?.access_token}`
+                    'Authorization': `Bearer ${token}`
                 }
             })
             const data = await response.json();
@@ -261,14 +249,11 @@ const AdminMarketPlace = () => {
     };
 
     useEffect(() => {
-        setUserSession()
-    }, [])
-    useEffect(() => {
-        if (authSession) {
+        if (user) {
             fetchProducts()
             fetchOrders()
         }
-    }, [authSession])
+    }, [user])
 
     return (
         <div className="space-y-3">

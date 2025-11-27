@@ -11,7 +11,7 @@ import { Download, Users, DollarSign, Calendar as CalendarIcon, IndianRupee, Arr
 import * as XLSX from 'xlsx'
 import { Months } from 'react-day-picker'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
-import { getUserSession } from '@/lib/auth'
+import { useAuth } from '@/app/context/AuthContext'
 import { useRouter } from 'next/navigation'
 
 const AdminAnalytics = () => {
@@ -25,28 +25,19 @@ const AdminAnalytics = () => {
     const [recentBookings, setRecentBookings] = useState([]);
     const [users, setUsers] = useState([])
     const [fullBookingHistory, setFullBookingHistory] = useState([])
-    const [authSession, setAuthSession] = useState(null)
-    const router = useRouter()
 
-    const setUserSession = async () => {
-        let userSession = null
-        try {
-            userSession = await getUserSession()
-            setAuthSession(userSession)
-        } catch (error) {
-            router.push('/login')
-            return;
-        }
-    }
+    const { user, loading: authLoading } = useAuth()
+    const router = useRouter()
 
     const fetchBookingHistory = async () => {
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/bookingHistory`, {
+            if (!user) return;
+            const token = await user.getIdToken();
+            const response = await fetch(`/api/admin/bookingHistory`, {
                 method: 'GET',
-                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'authorization': `bearer ${authSession?.access_token}`
+                    'authorization': `bearer ${token}`
                 },
             });
             if (!response.ok) {
@@ -62,12 +53,13 @@ const AdminAnalytics = () => {
     };
 
     const fetchHomePageStats = async () => {
-        const data = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/homePageStats`, {
+        if (!user) return;
+        const token = await user.getIdToken();
+        const data = await fetch(`/api/admin/homePageStats`, {
             method: 'GET',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'authorization': `bearer ${authSession?.access_token}`
+                'authorization': `bearer ${token}`
             }
         })
         const fetched = await data.json()
@@ -76,12 +68,13 @@ const AdminAnalytics = () => {
     }
 
     const fetchMonthlyBookings = async () => {
-        const data = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/monthlyBookings`, {
+        if (!user) return;
+        const token = await user.getIdToken();
+        const data = await fetch(`/api/admin/monthlyBookings`, {
             method: 'GET',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'authorization': `bearer ${authSession?.access_token}`
+                'authorization': `bearer ${token}`
             }
         })
         const fetched = await data.json()
@@ -93,12 +86,13 @@ const AdminAnalytics = () => {
 
     const fetchAnalytics = async () => {
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/getAnalytics`, {
+            if (!user) return;
+            const token = await user.getIdToken();
+            const response = await fetch(`/api/admin/getAnalytics`, {
                 method: 'GET',
-                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'authorization': `bearer ${authSession?.access_token}`
+                    'authorization': `bearer ${token}`
                 },
             })
             const data = await response.json()
@@ -122,12 +116,13 @@ const AdminAnalytics = () => {
     }
 
     const fetchUsers = async () => {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/user/getAll`, {
+        if (!user) return;
+        const token = await user.getIdToken();
+        const response = await fetch(`/api/admin/user/getAll`, {
             method: 'GET',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'authorization': `bearer ${authSession?.access_token}`
+                'authorization': `bearer ${token}`
             }
         })
         const data = await response.json()
@@ -137,17 +132,14 @@ const AdminAnalytics = () => {
     }
 
     useEffect(() => {
-        setUserSession()
-    }, [])
-    useEffect(() => {
-        if (authSession) {
+        if (user) {
             fetchHomePageStats()
             fetchMonthlyBookings()
             fetchAnalytics()
             fetchUsers()
             fetchBookingHistory()
         }
-    }, [authSession])
+    }, [user])
 
     const exportToExcel = (data, fileName) => {
         const ws = XLSX.utils.json_to_sheet(data)

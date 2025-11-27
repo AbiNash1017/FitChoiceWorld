@@ -28,7 +28,7 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { useRouter } from "next/navigation"
-import { getUserSession } from "@/lib/auth"
+import { useAuth } from "@/app/context/AuthContext"
 
 // type Category = {
 //   id: number;
@@ -42,7 +42,7 @@ const AdminVendorManagement = () => {
     const [isLoading, setIsLoading] = useState(false)
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
     const [currentVendor, setCurrentVendor] = useState(null)
-    const [authSession, setAuthSession] = useState()
+    const { user, loading } = useAuth()
     const [paymentDialogOpen, setPaymentDialogOpen] = useState(false)
     const [selectedVendor, setSelectedVendor] = useState(null)
     const [currentPage, setCurrentPage] = useState(1)
@@ -57,35 +57,21 @@ const AdminVendorManagement = () => {
     // })
     const router = useRouter()
 
-    const setUserSession = async () => {
-        let userSession = null
-        try {
-            userSession = await getUserSession()
-            setAuthSession(userSession)
-        } catch (error) {
-            router.push("/login")
-            return
-        }
-    }
-
     useEffect(() => {
-        setUserSession()
-    }, [])
-
-    useEffect(() => {
-        if (authSession) fetchVendors()
+        if (user) fetchVendors()
         // fetchCategories()
-    }, [authSession])
+    }, [user])
 
     const fetchVendors = async () => {
         setIsLoading(true)
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/vendor/getAll`, {
+            if (!user) return;
+            const token = await user.getIdToken();
+            const response = await fetch(`/api/admin/vendor/getAll`, {
                 method: "GET",
-                credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
-                    authorization: `Bearer ${authSession?.access_token}`,
+                    authorization: `Bearer ${token}`,
                 },
             })
             const data = await response.json()
@@ -95,13 +81,12 @@ const AdminVendorManagement = () => {
             const vendorsWithPayments = await Promise.all(
                 fetchedVendors.map(async (vendor) => {
                     const paymentResponse = await fetch(
-                        `${process.env.NEXT_PUBLIC_API_URL}/admin/getVendorPendingPayments?fitness_centre_id=${vendor.id}`,
+                        `/api/admin/getVendorPendingPayments?fitness_centre_id=${vendor.id}`,
                         {
                             method: "GET",
-                            credentials: "include",
                             headers: {
                                 "Content-Type": "application/json",
-                                authorization: `Bearer ${authSession?.access_token}`,
+                                authorization: `Bearer ${token}`,
                             },
                         },
                     )
@@ -130,12 +115,13 @@ const AdminVendorManagement = () => {
         if (!currentVendor) return
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/vendor/edit/${currentVendor.id}`, {
+            if (!user) return;
+            const token = await user.getIdToken();
+            const response = await fetch(`/api/admin/vendor/edit/${currentVendor.id}`, {
                 method: "PATCH",
-                credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
-                    authorization: `Bearer ${authSession?.access_token}`,
+                    authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify({
                     fitness_centre_id: currentVendor.id,
@@ -157,12 +143,13 @@ const AdminVendorManagement = () => {
 
     const handleDeleteVendor = async (fitness_centre_id) => {
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/vendor/delete/${fitness_centre_id}`, {
+            if (!user) return;
+            const token = await user.getIdToken();
+            const response = await fetch(`/api/admin/vendor/delete/${fitness_centre_id}`, {
                 method: "DELETE",
-                credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
-                    authorization: `Bearer ${authSession?.access_token}`,
+                    authorization: `Bearer ${token}`,
                 },
             })
 
@@ -178,12 +165,13 @@ const AdminVendorManagement = () => {
 
     const handleUpdatePayment = async (fitness_centre_id) => {
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/updateVendorPayment`, {
+            if (!user) return;
+            const token = await user.getIdToken();
+            const response = await fetch(`/api/admin/updateVendorPayment`, {
                 method: "PUT",
-                credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
-                    authorization: `Bearer ${authSession?.access_token}`,
+                    authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify({
                     payment_status: true,

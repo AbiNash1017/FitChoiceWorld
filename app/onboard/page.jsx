@@ -7,100 +7,61 @@ import { useEffect, useState } from "react";
 import Logo from '@/public/images/fcw_transparent.png'
 import Image from "next/image";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getUserSession } from "@/lib/auth";
+import { useAuth } from "@/app/context/AuthContext";
 
 export default function Onboard() {
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
     const [gender, setGender] = useState("");
-    const [dob, setDob] = useState("");
     const [mobileNumber, setMobileNumuber] = useState("");
-    // const [address, setAddress] = useState("");
-    const [city, setCity] = useState("");
-    const [state, setState] = useState("");
-    const [location, setLocation] = useState();
     const [error, setError] = useState(null);
     const [processing, setProcessing] = useState(false);
-    const [authSession, setAuthSession] = useState(null)
-    const router = useRouter()
-
-    const setUserSession = async () => {
-        let userSession = null
-        try {
-            userSession = await getUserSession()
-            setAuthSession(userSession)
-            // console.log(userSession)
-            if (!userSession) {
-                router.push('/login')
-            }
-        } catch (error) {
-            router.push('/login')
-            return;
-        }
-    }
+    const { user, loading } = useAuth();
+    const router = useRouter();
 
     useEffect(() => {
-        setUserSession()
-        if (!navigator.geolocation) {
-            setLocation((prev) => ({
-                ...prev,
-                error: 'Geolocation is not supported by your browser',
-            }));
-            return;
+        if (!loading && !user) {
+            router.push('/login');
         }
-
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                setLocation({
-                    latitude: position.coords.latitude,
-                    longitude: position.coords.longitude,
-                    error: null,
-                });
-            },
-            (error) => {
-                setLocation((prev) => ({
-                    ...prev,
-                    error: error.message,
-                }));
-            }
-        );
-    }, [])
-
+    }, [user, loading, router]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null);
         if (processing) return;
-        setProcessing(true)
-        const fdob = new Date(dob).toISOString()
+        setProcessing(true);
+
         try {
-            const response = await fetch(`/api/auth/onboardOwner`, {
+            const token = await user.getIdToken();
+            const response = await fetch(`/api/user/update`, {
                 method: "POST",
-                credentials: 'include',
                 headers: {
                     "Content-Type": "application/json",
-                    'Authorization': `bearer ${authSession?.access_token}`
+                    'Authorization': `Bearer ${token}`
                 },
-
-                body: JSON.stringify({ first_name: firstName, last_name: lastName, gender, dob: fdob, state, city, mobile_no: mobileNumber, latitude: location?.latitude?.toString(), longitude: location?.longitude?.toString(), address: "" }),
-
+                body: JSON.stringify({
+                    first_name: firstName,
+                    last_name: lastName,
+                    gender: gender === 'male' ? 0 : 1,
+                    phone_number: mobileNumber,
+                }),
             });
 
             const data = await response.json();
 
-            console.log(data)
-
-            if (data.message !== "OK") {
-                setError(data.error);
-                setProcessing(false)
+            if (!response.ok) {
+                setError(data.error || "Failed to update profile");
+                setProcessing(false);
                 return;
             }
-            router.push("/createCentre")
+            router.push("/createCentre");
         } catch (err) {
             setError("Failed to connect to the server!");
-            setProcessing(false)
+            setProcessing(false);
         }
     };
+
+    if (loading) return <div className="min-h-screen flex items-center justify-center bg-black text-white">Loading...</div>;
 
     return (
         <div className="min-h-screen flex bg-black">
@@ -157,17 +118,10 @@ export default function Onboard() {
                 <div className="max-w-md w-full">
                     <div className="text-center mb-8">
                         <h2 className="text-3xl font-bold text-white mb-2">OnBoard</h2>
-                        {/* <p className="text-gray-300">
-                            Have an account?{" "}
-                            <Link href="/login" replace={true} className="text-red-600 hover:underline">
-                                Log In
-                            </Link>
-                        </p> */}
                     </div>
 
                     <div className="space-y-4">
                         <form onSubmit={handleSubmit} className="space-y-4">
-                            {/* const { first_name, last_name, gender, dob, state, city, mobile_no, latitude, longitude, address } = req.body */}
                             <Input
                                 type="text"
                                 placeholder="First Name"
@@ -184,14 +138,6 @@ export default function Onboard() {
                                 required
                                 className="bg-white/80 placeholder:text-gray-500"
                             />
-                            {/* <Input
-                                type="text"
-                                placeholder="Gender"
-                                value={gender}
-                                onChange={(e) => setGender(e.target.value)}
-                                required
-                                className="bg-white/80 placeholder:text-gray-500"
-                            /> */}
                             <Select name="edit-gender" value={gender} onValueChange={(value) => setGender(value)} >
                                 <SelectTrigger className="mt-1 bg-white/80 placeholder:text-gray-500">
                                     <SelectValue placeholder="Gender" />
@@ -202,14 +148,6 @@ export default function Onboard() {
                                 </SelectContent>
                             </Select>
                             <Input
-                                type="date"
-                                placeholder="DoB"
-                                value={dob}
-                                onChange={(e) => setDob(e.target.value)}
-                                required
-                                className="bg-white/80 placeholder:text-gray-500"
-                            />
-                            <Input
                                 type="number"
                                 placeholder="Mobile Number"
                                 value={mobileNumber}
@@ -217,17 +155,9 @@ export default function Onboard() {
                                 required
                                 className="bg-white/80 placeholder:text-gray-500"
                             />
-                            {/* <Input
-                                type="text"
-                                placeholder="Address"
-                                value={address}
-                                onChange={(e) => setAddress(e.target.value)}
-                                required
-                                className="bg-white/80 placeholder:text-gray-500"
-                            /> */}
                             {error && <p style={{ color: "red" }}>{error}</p>}
                             <div>
-                                <Button type="submit" disabled={!authSession?.access_token || processing} className={`w-full mt-3 bg-red-700 hover:bg-red-800 ${!authSession?.access_token && 'bg-gray-500 hover:bg-gray-700'}`}>
+                                <Button type="submit" disabled={!user || processing} className={`w-full mt-3 bg-red-700 hover:bg-red-800 ${!user && 'bg-gray-500 hover:bg-gray-700'}`}>
                                     Continue
                                 </Button>
                             </div>

@@ -1,8 +1,7 @@
 'use client'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { getUserSession } from '@/lib/auth'
-import supabase from '@/lib/supabase'
+import { useAuth } from '@/app/context/AuthContext'
 import { Bell, ChevronDown, LogOut } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
@@ -10,6 +9,7 @@ import React, { useEffect, useState } from 'react'
 const VendorHeader = () => {
 
     const router = useRouter()
+    const { user, logout } = useAuth()
 
     const [gymDetails, setGymDetails] = useState({
         id: "",
@@ -21,49 +21,43 @@ const VendorHeader = () => {
         owner_id: "",
         location_id: ""
     })
-    const [authSession, setAuthSession] = useState(null)
 
-    const setUserSession = async () => {
-        let userSession = null
-        try {
-            userSession = await getUserSession()
-            setAuthSession(userSession)
-        } catch (error) {
-            router.push('/login')
-            return;
+    useEffect(() => {
+        if (user) {
+            fetchGymDetails();
         }
-    }
-
-    useEffect(() => {
-        setUserSession();
-    }, [])
-    useEffect(() => {
-        fetchGymDetails();
-    }, [authSession])
+    }, [user])
 
     const fetchGymDetails = async () => {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/fitnessCentre/myDetails`, {
-            method: 'GET',
-            credentials: 'include',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authSession?.access_token}`
+        try {
+            const token = await user.getIdToken();
+            const response = await fetch(`/api/fitness-center/my`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            const data = await response.json()
+            // Map the new API response to the state structure if needed
+            // The new API returns the FitnessCenter document.
+            // The state expects centre_name, etc.
+            // My new schema has 'name', 'description', etc.
+            // I should map it.
+            if (data && !data.error) {
+                setGymDetails({
+                    ...data,
+                    centre_name: data.name,
+                    centre_description: data.description,
+                })
             }
-        });
-        const data = await response.json()
-        console.log(data)
-        let fetchedDetails = data.data
-        console.log(fetchedDetails)
-        setGymDetails(fetchedDetails)
+        } catch (error) {
+            console.error("Error fetching gym details:", error);
+        }
     }
 
     const handleLogout = async () => {
-        try {
-            await supabase.auth.signOut()
-            router.push('/login')
-        } catch (error) {
-            alert("Some error occured: " + error)
-        }
+        await logout()
     }
 
     return (

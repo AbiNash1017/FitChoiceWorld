@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { getUserSession } from '@/lib/auth'
+import { useAuth } from '@/app/context/AuthContext'
 import { useRouter } from 'next/navigation'
 import { Edit, Plus, Trash2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
@@ -15,7 +15,7 @@ const AdminCommunication = () => {
 
     const router = useRouter()
 
-    const [authSession, setAuthSession] = useState()
+    const { user, loading } = useAuth()
     const [platformFee, setPlatformFee] = useState()
     const [newPlatformFee, setNewPlatformFee] = useState()
     const [videoLinks, setVideoLinks] = useState([])
@@ -33,27 +33,13 @@ const AdminCommunication = () => {
     })
     const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[\w-]+$/;
 
-    const setUserSession = async () => {
-        let userSession = null
-        try {
-            userSession = await getUserSession()
-            setAuthSession(userSession)
-        } catch (error) {
-            router.push('/login')
-            return;
-        }
-    }
-
     useEffect(() => {
-        setUserSession()
-    }, [])
-    useEffect(() => {
-        if (authSession) {
+        if (user) {
             fetchPlatformFee()
             handleFetchVideo()
             fetchCategories()
         }
-    }, [authSession])
+    }, [user])
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -90,12 +76,13 @@ const AdminCommunication = () => {
 
     const updatePlatformFee = async (platformFee) => {
         console.log(platformFee)
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/updatePlatformFee`, {
+        if (!user) return;
+        const token = await user.getIdToken();
+        const response = await fetch(`/api/admin/updatePlatformFee`, {
             method: 'PUT',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'authorization': `bearer ${authSession?.access_token}`
+                'authorization': `bearer ${token}`
             },
             body: JSON.stringify({
                 fee: newPlatformFee
@@ -113,12 +100,13 @@ const AdminCommunication = () => {
 
     const fetchPlatformFee = async () => {
         console.log("fetch pf")
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/platformFee`, {
+        if (!user) return;
+        const token = await user.getIdToken();
+        const response = await fetch(`/api/platformFee`, {
             method: 'GET',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'authorization': `bearer ${authSession?.access_token}`
+                'authorization': `bearer ${token}`
             }
         })
         const data = await response.json()
@@ -128,12 +116,13 @@ const AdminCommunication = () => {
     }
 
     const handleFetchVideo = async () => {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/youtubeLink`, {
+        if (!user) return;
+        const token = await user.getIdToken();
+        const response = await fetch(`/api/admin/youtubeLink`, {
             method: 'GET',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'authorization': `bearer ${authSession?.access_token}`
+                'authorization': `bearer ${token}`
             }
         })
         const data = await response.json()
@@ -149,12 +138,13 @@ const AdminCommunication = () => {
             return;
         }
 
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/youtubeLink`, {
+        if (!user) return;
+        const token = await user.getIdToken();
+        const response = await fetch(`/api/admin/youtubeLink`, {
             method: 'POST',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'authorization': `bearer ${authSession?.access_token}`
+                'authorization': `bearer ${token}`
             },
             body: JSON.stringify({ youtube_link: newLink })
         })
@@ -170,12 +160,13 @@ const AdminCommunication = () => {
 
     const handleEditVideo = async (video) => {
         console.log(video.id)
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/youtubeLink/${video.id}`, {
+        if (!user) return;
+        const token = await user.getIdToken();
+        const response = await fetch(`/api/admin/youtubeLink/${video.id}`, {
             method: 'PATCH',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'authorization': `bearer ${authSession?.access_token}`
+                'authorization': `bearer ${token}`
             },
             body: JSON.stringify({
                 ...video
@@ -194,12 +185,13 @@ const AdminCommunication = () => {
 
     const handleDeleteVideo = async (id) => {
         console.log(id)
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/youtubeLink/${id}`, {
+        if (!user) return;
+        const token = await user.getIdToken();
+        const response = await fetch(`/api/admin/youtubeLink/${id}`, {
             method: 'DELETE',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'authorization': `bearer ${authSession?.access_token}`
+                'authorization': `bearer ${token}`
             }
         })
         const data = await response.json()
@@ -212,12 +204,13 @@ const AdminCommunication = () => {
 
     const fetchCategories = async () => {
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/category`, {
+            if (!user) return;
+            const token = await user.getIdToken();
+            const response = await fetch(`/api/admin/category`, {
                 method: 'GET',
-                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'authorization': `Bearer ${authSession?.access_token}`
+                    'authorization': `Bearer ${token}`
                 },
             });
 
@@ -232,12 +225,13 @@ const AdminCommunication = () => {
 
     const handleAddCategory = async (name) => {
         console.log(name)
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/category`, {
+        if (!user) return;
+        const token = await user.getIdToken();
+        const response = await fetch(`/api/admin/category`, {
             method: 'POST',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'authorization': `bearer ${authSession?.access_token}`
+                'authorization': `bearer ${token}`
             },
             body: JSON.stringify(name)
         })
@@ -253,12 +247,13 @@ const AdminCommunication = () => {
 
     const handleEditCategory = async (category) => {
         console.log(category.id)
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/category/${category.id}`, {
+        if (!user) return;
+        const token = await user.getIdToken();
+        const response = await fetch(`/api/admin/category/${category.id}`, {
             method: 'PATCH',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'authorization': `bearer ${authSession?.access_token}`
+                'authorization': `bearer ${token}`
             },
             body: JSON.stringify({
                 ...category
@@ -277,12 +272,13 @@ const AdminCommunication = () => {
 
     const handleDeleteCategory = async (id) => {
         console.log(id)
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/category/${id}`, {
+        if (!user) return;
+        const token = await user.getIdToken();
+        const response = await fetch(`/api/admin/category/${id}`, {
             method: 'DELETE',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'authorization': `bearer ${authSession?.access_token}`
+                'authorization': `bearer ${token}`
             }
         })
         const data = await response.json()

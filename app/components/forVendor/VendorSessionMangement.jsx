@@ -12,7 +12,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger, } from "@/components/ui/alert-dialog"
 import { useFitnessCentre } from '@/app/context/FitnessCentreContext'
 import { useRouter } from 'next/navigation'
-import { getUserSession } from '@/lib/auth'
+import { useAuth } from '@/app/context/AuthContext'
+import { useRouter } from 'next/navigation'
 
 const VendorSessionManagement = () => {
     const [showEditModal, setShowEditModal] = useState(false)
@@ -50,40 +51,30 @@ const VendorSessionManagement = () => {
         session_id: 0
     })
     const [currentPage, setCurrentPage] = useState(1)
-    const [loading, setLoading] = useState(false)
+    // const [loading, setLoading] = useState(false) // useAuth has loading
     const itemsPerPage = 6
     const totalPages = sessions ? Math.ceil(sessions.length / itemsPerPage) : 1;
     const indexOfLastSession = currentPage * itemsPerPage
     const indexOfFirstSession = indexOfLastSession - itemsPerPage
     const currentSessions = sessions ? sessions.slice(indexOfFirstSession, indexOfLastSession) : [];
     const paginate = (pageNumber) => setCurrentPage(pageNumber)
-    const [authSession, setAuthSession] = useState(null)
+    const { user, loading } = useAuth()
     const [categories, setCategories] = useState([])
     const router = useRouter();
 
-    const setUserSession = async () => {
-        let userSession = null
-        try {
-            userSession = await getUserSession()
-            setAuthSession(userSession)
-        } catch (error) {
-            router.push('/login')
-            return;
-        }
-    }
-
     const fetchSessions = async () => {
         try {
+            if (!user) return;
+            const token = await user.getIdToken();
             console.log("in fetchsessions", fitnessCentreId);
-            // const fcId = await supabase
+
             const response = await fetch(
-                `${process.env.NEXT_PUBLIC_API_URL}/fitnessCentre/session/?fitness_centre_id=${fitnessCentreId}`,
+                `/api/fitness-center/session?fitness_centre_id=${fitnessCentreId}`,
                 {
                     method: 'GET',
-                    credentials: 'include',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authSession?.access_token}`
+                        'Authorization': `Bearer ${token}`
                     },
                 }
             );
@@ -108,12 +99,13 @@ const VendorSessionManagement = () => {
     };
 
     const handleDelete = async (id) => {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/vendor/session/${id}`, {
+        if (!user) return;
+        const token = await user.getIdToken();
+        const response = await fetch(`/api/vendor/session/${id}`, {
             method: 'DELETE',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authSession?.access_token}`,
+                'Authorization': `Bearer ${token}`,
             }
         })
         const data = await response.json()
@@ -126,12 +118,13 @@ const VendorSessionManagement = () => {
     }
 
     const handleDeleteAvailability = async (id) => {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/vendor/availability/${id}`, {
+        if (!user) return;
+        const token = await user.getIdToken();
+        const response = await fetch(`/api/vendor/availability/${id}`, {
             method: 'DELETE',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authSession?.access_token}`,
+                'Authorization': `Bearer ${token}`,
             }
         })
         const data = await response.json()
@@ -153,12 +146,14 @@ const VendorSessionManagement = () => {
             return;
         }
 
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/vendor/session`, {
+        if (!user) return;
+        const token = await user.getIdToken();
+
+        const response = await fetch(`/api/vendor/session`, {
             method: 'POST',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authSession?.access_token}`,
+                'Authorization': `Bearer ${token}`,
             },
             body: JSON.stringify({
                 category,
@@ -197,12 +192,14 @@ const VendorSessionManagement = () => {
             return;
         }
 
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/vendor/session/${id}`, {
+        if (!user) return;
+        const token = await user.getIdToken();
+
+        const response = await fetch(`/api/vendor/session/${id}`, {
             method: 'PATCH',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authSession?.access_token}`,
+                'Authorization': `Bearer ${token}`,
             },
             body: JSON.stringify({
                 category,
@@ -269,14 +266,15 @@ const VendorSessionManagement = () => {
                 session_id: selectedSession.id,
             })),
         };
-        //console.log('Payload to send:', availabilityPayload);  
+
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/vendor/availability`, {
+            if (!user) return;
+            const token = await user.getIdToken();
+            const response = await fetch(`/api/vendor/availability`, {
                 method: 'POST',
-                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authSession?.access_token}`
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify(availabilityPayload),
             });
@@ -301,10 +299,7 @@ const VendorSessionManagement = () => {
 
     const handleEditAvailability = async (e) => {
         e.preventDefault();
-        // if (editAvailabilityData.day.length > 1 || !editAvailabilityData.start_time || !editAvailabilityData.end_time) {
-        //   alert('Please fill all the required fields! Choose only 1 day');
-        //   return;
-        // }
+
         console.log(editAvailabilityData.day, editAvailabilityData.start_time, editAvailabilityData.end_time)
         const availabilityPayload = {
             availability: {
@@ -315,12 +310,13 @@ const VendorSessionManagement = () => {
         };
         console.log('Payload to send:', availabilityPayload);
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/vendor/availability/${editAvailabilityData.id}`, {
+            if (!user) return;
+            const token = await user.getIdToken();
+            const response = await fetch(`/api/vendor/availability/${editAvailabilityData.id}`, {
                 method: 'PATCH',
-                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authSession?.access_token}`
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify(availabilityPayload),
             });
@@ -347,12 +343,13 @@ const VendorSessionManagement = () => {
 
     const fetchCategories = async () => {
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/vendor/category`, {
+            if (!user) return;
+            const token = await user.getIdToken();
+            const response = await fetch(`/api/vendor/category`, {
                 method: 'GET',
-                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'authorization': `Bearer ${authSession?.access_token}`
+                    'Authorization': `Bearer ${token}`
                 },
             });
 
@@ -366,13 +363,11 @@ const VendorSessionManagement = () => {
     }
 
     useEffect(() => {
-        setUserSession()
-    }, [])
-    useEffect(() => {
-        if (authSession)
+        if (user) {
             fetchSessions()
-        fetchCategories()
-    }, [authSession])
+            fetchCategories()
+        }
+    }, [user])
 
     return (
         <div className="space-y-6">

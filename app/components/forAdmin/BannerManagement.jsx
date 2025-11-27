@@ -15,9 +15,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import supabase from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-import { getUserSession } from '@/lib/auth'
+import { useAuth } from '@/app/context/AuthContext'
+import { storage } from '@/firebaseConfig'
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 
 export default function CreateBannerPage() {
     const [coupons, setCoupons] = useState([])
@@ -51,18 +52,19 @@ export default function CreateBannerPage() {
     const [editImagePreview, setEditImagePreview] = useState(null);
     const fileInputRef = useRef(null);
     const headerFileInputRef = useRef(null);
-    const [authSession, setAuthSession] = useState(null)
+    const { user, loading: authLoading } = useAuth()
     const router = useRouter()
 
     const fetchCoupons = async () => {
         try {
+            if (!user) return;
             setLoading(true)
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/getCoupons`, {
+            const token = await user.getIdToken();
+            const response = await fetch(`/api/admin/getCoupons`, {
                 method: 'GET',
-                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authSession?.access_token}`
+                    'Authorization': `Bearer ${token}`
                 }
             })
             if (!response.ok) {
@@ -78,12 +80,13 @@ export default function CreateBannerPage() {
 
     const fetchBanners = async () => {
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/banner`, {
+            if (!user) return;
+            const token = await user.getIdToken();
+            const response = await fetch(`/api/admin/banner`, {
                 method: 'GET',
-                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authSession?.access_token}`
+                    'Authorization': `Bearer ${token}`
                 }
             })
             // if (!response.ok) {
@@ -101,15 +104,16 @@ export default function CreateBannerPage() {
 
     const addBanner = async (banner) => {
         try {
+            if (!user) return;
+            const token = await user.getIdToken();
             const { coupon_code, start_date, end_date, banner_title, banner_description } = banner;
 
             console.log('Sending banner:', JSON.stringify(banner));
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/banner`, {
+            const response = await fetch(`/api/admin/banner`, {
                 method: 'POST',
-                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authSession?.access_token}`
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     coupon_id: coupon_code,
@@ -136,12 +140,13 @@ export default function CreateBannerPage() {
 
     const handleDeleteBanner = async (id) => {
         console.log(id)
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/banner/${id}`, {
+        if (!user) return;
+        const token = await user.getIdToken();
+        const response = await fetch(`/api/admin/banner/${id}`, {
             method: 'DELETE',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authSession?.access_token}`
+                'Authorization': `Bearer ${token}`
             }
         })
         const data = await response.json()
@@ -156,15 +161,16 @@ export default function CreateBannerPage() {
     const handleEditBanner = async (banner) => {
         console.log(banner.id)
         console.log(banner)
+        if (!user) return;
+        const token = await user.getIdToken();
         let banner_image = editImagePreview || banner.banner_image;
         const { coupon_code, start_date, end_date, banner_title, banner_description } = banner;
         console.log(coupon_code, start_date, end_date, banner_title, banner_description, banner_image)
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/banner/${banner.id}`, {
+        const response = await fetch(`/api/admin/banner/${banner.id}`, {
             method: 'PATCH',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authSession?.access_token}`
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({
                 coupon_id: coupon_code,
@@ -184,19 +190,12 @@ export default function CreateBannerPage() {
             alert('error editing banner')
     }
 
-    const uploadImageToSupabase = async (file, pathPrefix) => {
+    const uploadImageToFirebase = async (file, pathPrefix) => {
         try {
-            const { data: image, error } = await supabase.storage
-                .from('fitchoice-bucket')
-                .upload(`${pathPrefix}/${Date.now()}-${file.name}`, file);
-
-            if (error) throw error;
-
-            const { data: publicUrl } = supabase.storage
-                .from('fitchoice-bucket')
-                .getPublicUrl(image?.path || '');
-
-            return publicUrl?.publicUrl || null;
+            const storageRef = ref(storage, `${pathPrefix}/${Date.now()}-${file.name}`);
+            const snapshot = await uploadBytes(storageRef, file);
+            const publicUrl = await getDownloadURL(snapshot.ref);
+            return publicUrl;
         } catch (error) {
             console.error('Image upload failed:', error);
             return null;
@@ -278,7 +277,7 @@ export default function CreateBannerPage() {
     const handleImageChange = async (e) => {
         const file = e.target.files?.[0];
         if (file) {
-            const uploadedImageUrl = await uploadImageToSupabase(file, 'banners');
+            const uploadedImageUrl = await uploadImageToFirebase(file, 'banners');
 
             if (uploadedImageUrl) {
                 setImagePreview(uploadedImageUrl);
@@ -295,7 +294,7 @@ export default function CreateBannerPage() {
     const handleEditImageChange = async (e) => {
         const file = e.target.files?.[0];
         if (file) {
-            const uploadedImageUrl = await uploadImageToSupabase(file, 'banners');
+            const uploadedImageUrl = await uploadImageToFirebase(file, 'banners');
             if (uploadedImageUrl) {
                 setEditImagePreview(uploadedImageUrl);
                 setCurrentBanners((prev) => ({ ...prev, banner_image: uploadedImageUrl }));
@@ -305,27 +304,12 @@ export default function CreateBannerPage() {
         }
     };
 
-    const setUserSession = async () => {
-        let userSession = null
-        try {
-            userSession = await getUserSession()
-            setAuthSession(userSession)
-        } catch (error) {
-            router.push('/login')
-            return;
-        }
-    }
-
     useEffect(() => {
-        setUserSession()
-    }, [])
-
-    useEffect(() => {
-        if (authSession) {
+        if (user) {
             fetchCoupons()
             fetchBanners()
         }
-    }, [authSession])
+    }, [user])
 
     return (
         <div className="container mx-auto space-y-6">

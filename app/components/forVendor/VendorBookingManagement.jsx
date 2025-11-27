@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Loader } from 'lucide-react'
 import { useFitnessCentre } from '@/app/context/FitnessCentreContext'
 import { useRouter } from 'next/navigation'
-import { getUserSession } from '@/lib/auth'
+import { useAuth } from '@/app/context/AuthContext'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 
@@ -21,28 +21,19 @@ const VendorBookingManagement = () => {
     const [users, setUsers] = useState([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
-    const [authSession, setAuthSession] = useState(null)
+    const { user, loading: authLoading } = useAuth()
     const [orders, setOrders] = useState([]);
     const router = useRouter()
 
-    const setUserSession = async () => {
-        let userSession = null
-        try {
-            userSession = await getUserSession()
-            setAuthSession(userSession)
-        } catch (error) {
-            router.push('/login')
-            return;
-        }
-    }
-
     const updateOrderStatus = async (id, status) => {
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/fitnessCentre/updateOrderStatus/${id}`, {
+            if (!user) return;
+            const token = await user.getIdToken();
+            const response = await fetch(`/api/fitness-center/updateOrderStatus/${id}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authSession?.access_token}`
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     status: status
@@ -67,12 +58,13 @@ const VendorBookingManagement = () => {
         const id = fitnessCentreId
         console.log(id)
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/fitnessCentre/bookingHistory/${id}`, {
+            if (!user) return;
+            const token = await user.getIdToken();
+            const response = await fetch(`/api/fitness-center/bookingHistory/${id}`, {
                 method: 'GET',
-                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authSession?.access_token}`
+                    'Authorization': `Bearer ${token}`
                 },
             })
             if (!response.ok) {
@@ -122,12 +114,9 @@ const VendorBookingManagement = () => {
     };
 
     useEffect(() => {
-        setUserSession()
-    }, [])
-    useEffect(() => {
-        if (authSession)
+        if (user)
             fetchBookingHistory()
-    }, [authSession])
+    }, [user])
 
     return (
         <div className="space-y-6">

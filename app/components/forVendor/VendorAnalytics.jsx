@@ -16,8 +16,7 @@ import * as XLSX from 'xlsx'
 import { Months } from 'react-day-picker'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { useFitnessCentre } from '@/app/context/FitnessCentreContext'
-import { AuthSession } from '@supabase/supabase-js'
-import { getUserSession } from '@/lib/auth'
+import { useAuth } from '@/app/context/AuthContext'
 import { useRouter } from 'next/navigation'
 
 const VendorAnalytics = () => {
@@ -29,32 +28,22 @@ const VendorAnalytics = () => {
     const [revenueByDate, setRevenueByDate] = useState([]);
     const [bookings, setBookings] = useState([])
     const [centreData, setCentreData] = useState(null);
-    const [authSession, setAuthSession] = useState(null)
+    const { user, loading } = useAuth()
     const router = useRouter()
     // const [date, setDate] = React.useState({
     //   from: new Date(),
     //   to: addDays(new Date(), 7),
     // })
 
-    const setUserSession = async () => {
-        let userSession = null
-        try {
-            userSession = await getUserSession()
-            setAuthSession(userSession)
-        } catch (error) {
-            router.push('/login')
-            return;
-        }
-    }
-
     const fetchAnalytics = async () => {
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/vendor/analytics`, {
+            if (!user) return;
+            const token = await user.getIdToken();
+            const response = await fetch(`/api/vendor/analytics`, {
                 method: 'GET',
-                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authSession?.access_token}`
+                    'Authorization': `Bearer ${token}`
                 },
             })
             const data = await response.json()
@@ -76,12 +65,13 @@ const VendorAnalytics = () => {
         const id = fitnessCentreId;
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/fitnessCentre/bookingHistory/${id}`, {
+            if (!user) return;
+            const token = await user.getIdToken();
+            const response = await fetch(`/api/fitness-center/bookingHistory/${id}`, {
                 method: 'GET',
-                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authSession?.access_token}`
+                    'Authorization': `Bearer ${token}`
                 },
             });
             if (!response.ok) {
@@ -166,14 +156,11 @@ const VendorAnalytics = () => {
     }
 
     useEffect(() => {
-        setUserSession()
-    }, [])
-    useEffect(() => {
-        if (authSession) {
+        if (user) {
             fetchAnalytics()
             fetchBookingHistory()
         }
-    }, [authSession])
+    }, [user])
 
     return (
         <div className="space-y-6">

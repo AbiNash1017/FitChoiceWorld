@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { ArrowUpRight, Users, DollarSign, Calendar, IndianRupee } from 'lucide-react'
 import { useEffect, useState } from "react"
-import { getUserSession } from "@/lib/auth"
+import { useAuth } from "@/app/context/AuthContext"
 import { useRouter } from "next/navigation"
 
 const AdminOverview = () => {
@@ -21,16 +21,17 @@ const AdminOverview = () => {
     const [categoryBookings, setCategoryBookings] = useState([]);
     const [recentUsers, setRecentUsers] = useState([]);
     const [recentBookings, setRecentBookings] = useState([]);
-    const [authSession, setAuthSession] = useState()
+    const { user, loading } = useAuth()
     const router = useRouter()
 
     const fetchHomePageStats = async () => {
-        const data = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/homePageStats`, {
+        if (!user) return;
+        const token = await user.getIdToken();
+        const data = await fetch(`/api/admin/stats`, {
             method: 'GET',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'authorization': `bearer ${authSession?.access_token}`
+                'Authorization': `Bearer ${token}`
             }
         })
         const fetched = await data.json()
@@ -39,12 +40,13 @@ const AdminOverview = () => {
     }
 
     const fetchMonthlyBookings = async () => {
-        const data = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/monthlyBookings`, {
+        if (!user) return;
+        const token = await user.getIdToken();
+        const data = await fetch(`/api/admin/bookings/monthly`, {
             method: 'GET',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'authorization': `bearer ${authSession?.access_token}`
+                'Authorization': `Bearer ${token}`
             }
         })
         const fetched = await data.json()
@@ -56,18 +58,19 @@ const AdminOverview = () => {
 
     const fetchAnalytics = async () => {
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/getAnalytics`, {
+            if (!user) return;
+            const token = await user.getIdToken();
+            const response = await fetch(`/api/admin/analytics`, {
                 method: 'GET',
-                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'authorization': `bearer ${authSession?.access_token}`
+                    'Authorization': `Bearer ${token}`
                 },
             })
             const data = await response.json()
             console.log('Fetched data:', data);
-            if (data.message.toLowerCase() === 'ok') {
-                const formattedCategoryBookings = Object.entries(data.categoryBookings).map(([key, value]) => ({
+            if (response.ok) {
+                const formattedCategoryBookings = Object.entries(data.categoryBookings || {}).map(([key, value]) => ({
                     category: key,
                     bookings: Number(value),
                 }));
@@ -83,27 +86,16 @@ const AdminOverview = () => {
             console.log('Error fetching analytics:', error);
         }
     }
-    const setUserSession = async () => {
-        let userSession = null
-        try {
-            userSession = await getUserSession()
-            setAuthSession(userSession)
-        } catch (error) {
-            router.push('/login')
-            return;
-        }
-    }
 
     useEffect(() => {
-        setUserSession()
-    }, [])
-    useEffect(() => {
-        if (authSession) {
+        if (!loading && !user) {
+            router.push('/login')
+        } else if (user) {
             fetchHomePageStats()
             fetchMonthlyBookings()
             fetchAnalytics()
         }
-    }, [authSession])
+    }, [user, loading, router])
 
     return (
         <div className="space-y-6">

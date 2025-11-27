@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
 import { useEffect, useState } from "react"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
-import { getUserSession } from "@/lib/auth"
+import { useAuth } from "@/app/context/AuthContext"
 import { useRouter } from "next/navigation"
 
 const VendorOverview = () => {
@@ -20,41 +20,29 @@ const VendorOverview = () => {
     const [sessionCategoryBookings, setSessionCategoryBookings] = useState([]);
     const [topUsers, setTopUsers] = useState([]);
     const [recentBookings, setRecentBookings] = useState([]);
-    const [loading, setLoading] = useState(false)
-    const [authSession, setAuthSession] = useState(null)
+    // const [loading, setLoading] = useState(false) // useAuth has loading
+    const { user, loading } = useAuth()
     const router = useRouter()
-
-    const setUserSession = async () => {
-        let userSession = null
-        try {
-            userSession = await getUserSession()
-            setAuthSession(userSession)
-        } catch (error) {
-            router.push('/login')
-            return;
-        }
-    }
 
     const fetchOverview = async () => {
         try {
-            setLoading(true)
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/fitnessCentre/overview`, {
+            if (!user) return;
+            const token = await user.getIdToken();
+            const response = await fetch(`/api/fitness-center/overview`, {
                 method: 'GET',
-                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authSession?.access_token}`
+                    'Authorization': `Bearer ${token}`
                 },
             });
             const data = await response.json()
             console.log('Fetched data:', data);
-            if (data.message.toLowerCase() === 'ok') {
-                setMonthlyBookings(data.data.monthlyBookings || 0);
-                setMonthlyRevenue(data.data.monthlyRevenue || 0);
-                setRating(data.data.rating || {});
-                setLatestBookings(data.data.latest_bookings || []);
-                setLatestReviews(data.data.latest_reviews || [])
-                setLoading(false)
+            if (response.ok) {
+                setMonthlyBookings(data.data?.monthlyBookings || 0);
+                setMonthlyRevenue(data.data?.monthlyRevenue || 0);
+                setRating(data.data?.rating || {});
+                setLatestBookings(data.data?.latest_bookings || []);
+                setLatestReviews(data.data?.latest_reviews || [])
             } else {
                 console.log('Error fetching analytics:', data.error);
             }
@@ -65,22 +53,21 @@ const VendorOverview = () => {
 
     const fetchAnalytics = async () => {
         try {
-            setLoading(true)
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/vendor/analytics`, {
+            if (!user) return;
+            const token = await user.getIdToken();
+            const response = await fetch(`/api/vendor/analytics`, {
                 method: 'GET',
-                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'authorization': `Bearer ${authSession?.access_token}`
+                    'Authorization': `Bearer ${token}`
                 },
             })
             const data = await response.json()
             console.log('Fetched data:', data);
-            if (data.message.toLowerCase() === 'ok') {
-                setTopUsers(data.data.topUsers || []);
-                setSessionCategoryBookings(data.data.sessionCategoryBookings || []);
-                setRecentBookings(data.data.recentBookings || []);
-                setLoading(false)
+            if (response.ok) {
+                setTopUsers(data.data?.topUsers || []);
+                setSessionCategoryBookings(data.data?.sessionCategoryBookings || []);
+                setRecentBookings(data.data?.recentBookings || []);
             } else {
                 console.log('Error fetching analytics:', data.error);
             }
@@ -90,14 +77,13 @@ const VendorOverview = () => {
     }
 
     useEffect(() => {
-        setUserSession();
-    }, [])
-    useEffect(() => {
-        if (authSession) {
+        if (!loading && !user) {
+            router.push('/login')
+        } else if (user) {
             fetchOverview();
             fetchAnalytics();
         }
-    }, [authSession])
+    }, [user, loading, router])
 
     return (
         <div className="space-y-6">

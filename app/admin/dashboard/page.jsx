@@ -16,11 +16,11 @@ import BannerManagement from '@/app/components/forAdmin/BannerManagement'
 import CouponAndBannerManagement from '@/app/components/forAdmin/CouponAndBannerManagement'
 import AdminMarketPlace from '@/app/components/forAdmin/AdminMarketPlace'
 import { useRouter } from 'next/navigation'
-import { getUserSession } from '@/lib/auth'
+import { useAuth } from '@/app/context/AuthContext'
 
 const AdminDashboard = () => {
     const [activeTab, setActiveTab] = useState('overview')
-    const [authSession, setAuthSession] = useState(null)
+    const { user, loading } = useAuth();
     const router = useRouter();
 
     const tabs = [
@@ -36,20 +36,11 @@ const AdminDashboard = () => {
         { id: 'configurations', label: 'Platform Configurations', icon: Settings },
     ]
 
-    const setUserSession = async () => {
-        let userSession = null
-        try {
-            userSession = await getUserSession()
-            setAuthSession(userSession)
-        } catch (error) {
-            router.push('/login')
-            return;
-        }
-    }
-
     useEffect(() => {
-        setUserSession()
-    })
+        if (!loading && !user) {
+            router.push('/login')
+        }
+    }, [user, loading, router])
 
     return (
         <div className="flex h-screen bg-gray-100 dark:bg-gray-900">

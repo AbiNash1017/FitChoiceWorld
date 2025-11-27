@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/popover"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { getUserSession } from '@/lib/auth'
+import { useAuth } from '@/app/context/AuthContext'
 import { useRouter } from 'next/navigation'
 
 const AdminCoupons = () => {
@@ -49,19 +49,20 @@ const AdminCoupons = () => {
     const [loading, setLoading] = useState(false)
     const [formErrors, setFormErrors] = useState({})
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-    const [authSession, setAuthSession] = useState()
+    const { user, loading: authLoading } = useAuth()
 
     const router = useRouter()
 
     const fetchCoupons = async () => {
         try {
+            if (!user) return;
             setLoading(true)
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/getCoupons`, {
+            const token = await user.getIdToken();
+            const response = await fetch(`/api/admin/getCoupons`, {
                 method: 'GET',
-                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'authorization': `bearer ${authSession?.access_token}`
+                    'authorization': `bearer ${token}`
                 }
             });
             if (!response.ok) {
@@ -80,14 +81,15 @@ const AdminCoupons = () => {
 
     const addCoupon = async (coupon) => {
         try {
+            if (!user) return;
+            const token = await user.getIdToken();
             const { coupon_code, discount_value, type, end_date, max_discount, min_purchase, start_date } = coupon;
             console.log('Sending coupon:', JSON.stringify(coupon));
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/coupon`, {
+            const response = await fetch(`/api/admin/coupon`, {
                 method: 'POST',
-                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'authorization': `bearer ${authSession?.access_token}`,
+                    'authorization': `bearer ${token}`,
                 },
                 body: JSON.stringify({
                     coupon_code,
@@ -115,12 +117,13 @@ const AdminCoupons = () => {
 
     const handleDeleteCoupon = async (id) => {
         console.log(id)
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/coupon/${id}`, {
+        if (!user) return;
+        const token = await user.getIdToken();
+        const response = await fetch(`/api/admin/coupon/${id}`, {
             method: 'DELETE',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'authorization': `bearer ${authSession?.access_token}`,
+                'authorization': `bearer ${token}`,
             }
         })
         const data = await response.json()
@@ -135,13 +138,14 @@ const AdminCoupons = () => {
     const handleEditCoupon = async (coupon) => {
         console.log(coupon.id)
         console.log(coupon)
+        if (!user) return;
+        const token = await user.getIdToken();
         const { coupon_code, discount_value, type, end_date, max_discount, min_purchase, start_date } = coupon;
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/coupon/${coupon.id}`, {
+        const response = await fetch(`/api/admin/coupon/${coupon.id}`, {
             method: 'PATCH',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'authorization': `bearer ${authSession?.access_token}`
+                'authorization': `bearer ${token}`
             },
             body: JSON.stringify({
                 coupon_code,
@@ -163,24 +167,10 @@ const AdminCoupons = () => {
             alert('error editing coupon')
     }
 
-    const setUserSession = async () => {
-        let userSession = null
-        try {
-            userSession = await getUserSession()
-            setAuthSession(userSession)
-        } catch (error) {
-            router.push('/login')
-            return;
-        }
-    }
-
     useEffect(() => {
-        setUserSession();
-    }, []);
-    useEffect(() => {
-        if (authSession)
+        if (user)
             fetchCoupons();
-    }, [authSession]);
+    }, [user]);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target

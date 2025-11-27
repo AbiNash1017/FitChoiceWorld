@@ -1,5 +1,4 @@
-// app/api/auth/onboardOwner/route.js
-import { createClient } from '@supabase/supabase-js'
+import { adminAuth } from '@/lib/firebaseAdmin'
 import { NextResponse } from 'next/server'
 import dbConnect from '@/lib/db'
 import User from '@/lib/models/User'
@@ -11,35 +10,25 @@ export async function POST(request) {
 
         // Validate required fields
         if (!first_name || !last_name) {
-            return NextResponse.json({ 
-                error: 'Missing required fields: first_name and last_name are required' 
+            return NextResponse.json({
+                error: 'Missing required fields: first_name and last_name are required'
             }, { status: 400 })
         }
 
         // Get the authorization header
         const authHeader = request.headers.get('Authorization')
-        if (!authHeader) {
-            return NextResponse.json({ error: 'Missing Authorization header' }, { status: 401 })
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        // Create a Supabase client with the user's access token
-        const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-            {
-                global: {
-                    headers: {
-                        Authorization: authHeader,
-                    },
-                },
-            }
-        )
+        const token = authHeader.split('Bearer ')[1]
+        let uid;
 
-        // Verify the user
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-        if (authError || !user) {
-            console.error('Auth error:', authError)
+        try {
+            const decodedToken = await adminAuth.verifyIdToken(token);
+            uid = decodedToken.uid;
+        } catch (error) {
+            console.error('Auth error:', error)
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
@@ -47,13 +36,13 @@ export async function POST(request) {
         await dbConnect()
 
         // Check if user already exists
-        const existingUser = await User.findOne({ uid: user.id })
+        const existingUser = await User.findOne({ uid: uid })
 
         let updatedUser
         if (existingUser) {
             // Update existing user
             updatedUser = await User.findOneAndUpdate(
-                { uid: user.id },
+                { uid: uid },
                 {
                     first_name,
                     last_name,
@@ -72,7 +61,7 @@ export async function POST(request) {
         } else {
             // Create new user
             updatedUser = await User.create({
-                uid: user.id,
+                uid: uid,
                 first_name,
                 last_name,
                 gender,
@@ -86,9 +75,9 @@ export async function POST(request) {
             })
         }
 
-        return NextResponse.json({ 
-            message: 'User onboarded successfully', 
-            user: updatedUser 
+        return NextResponse.json({
+            message: 'User onboarded successfully',
+            user: updatedUser
         }, { status: 200 })
 
     } catch (error) {
@@ -96,23 +85,23 @@ export async function POST(request) {
 
         // Handle duplicate key error specifically
         if (error.code === 11000) {
-            return NextResponse.json({ 
+            return NextResponse.json({
                 error: 'User already exists with this UID',
-                details: error.keyValue 
+                details: error.keyValue
             }, { status: 409 })
         }
 
         // Handle validation errors
         if (error.name === 'ValidationError') {
-            return NextResponse.json({ 
+            return NextResponse.json({
                 error: 'Validation failed',
-                details: error.errors 
+                details: error.errors
             }, { status: 400 })
         }
 
-        return NextResponse.json({ 
+        return NextResponse.json({
             error: 'Internal Server Error',
-            message: error.message 
+            message: error.message
         }, { status: 500 })
     }
 }

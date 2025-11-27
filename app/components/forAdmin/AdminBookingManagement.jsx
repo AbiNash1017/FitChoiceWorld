@@ -6,7 +6,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Loader } from 'lucide-react'
-import { getUserSession } from '@/lib/auth'
+import { useAuth } from '@/app/context/AuthContext'
 import { useRouter } from 'next/navigation'
 
 const AdminBookingManagement = () => {
@@ -16,6 +16,7 @@ const AdminBookingManagement = () => {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
 
+    const { user, loading: authLoading } = useAuth()
     const router = useRouter()
 
     const fetchBookingHistory = async () => {
@@ -24,19 +25,13 @@ const AdminBookingManagement = () => {
 
         try {
 
-            let userSession = null
-            try {
-                userSession = await getUserSession()
-            } catch (error) {
-                router.push('/login')
-                return;
-            }
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/bookingHistory`, {
+            if (!user) return;
+            const token = await user.getIdToken();
+            const response = await fetch(`/api/admin/bookingHistory`, {
                 method: 'GET',
-                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'authorization': `bearer ${userSession?.access_token}`
+                    'authorization': `bearer ${token}`
                 },
             });
             if (!response.ok) {
@@ -93,8 +88,9 @@ const AdminBookingManagement = () => {
     };
 
     useEffect(() => {
-        fetchBookingHistory();
-    }, []);
+        if (user)
+            fetchBookingHistory();
+    }, [user]);
 
 
     return (

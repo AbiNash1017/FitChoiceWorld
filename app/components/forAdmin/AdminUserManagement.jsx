@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
-import { getUserSession } from "@/lib/auth"
+import { useAuth } from "@/app/context/AuthContext"
 import { useRouter } from "next/navigation"
 
 const AdminUserManagement = () => {
@@ -50,7 +50,7 @@ const AdminUserManagement = () => {
         mobile_no: "",
     })
     const [loading, setLoading] = useState(false)
-    const [authSession, setAuthSession] = useState()
+    const { user, loading: authLoading } = useAuth()
     const router = useRouter()
 
     const [currentPage, setCurrentPage] = useState(1)
@@ -58,12 +58,13 @@ const AdminUserManagement = () => {
 
     const handleEditUser = async (user) => {
         console.log(user.id)
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/user/edit/${user.id}`, {
+        if (!user) return;
+        const token = await user.getIdToken();
+        const response = await fetch(`/api/admin/user/edit/${user.id}`, {
             method: "PATCH",
-            credentials: "include",
             headers: {
                 "Content-Type": "application/json",
-                authorization: `bearer ${authSession?.access_token}`,
+                authorization: `bearer ${token}`,
             },
             body: JSON.stringify({
                 ...user,
@@ -79,12 +80,13 @@ const AdminUserManagement = () => {
 
     const handleDeleteUser = async (id) => {
         console.log(id)
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/user/delete/${id}`, {
+        if (!user) return;
+        const token = await user.getIdToken();
+        const response = await fetch(`/api/admin/user/delete/${id}`, {
             method: "DELETE",
-            credentials: "include",
             headers: {
                 "Content-Type": "application/json",
-                authorization: `bearer ${authSession?.access_token}`,
+                authorization: `bearer ${token}`,
             },
         })
         const data = await response.json()
@@ -99,12 +101,13 @@ const AdminUserManagement = () => {
 
     const fetchUsers = async () => {
         setLoading(true)
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/user/getAll`, {
+        if (!user) return;
+        const token = await user.getIdToken();
+        const response = await fetch(`/api/admin/user/getAll`, {
             method: "GET",
-            credentials: "include",
             headers: {
                 "Content-Type": "application/json",
-                authorization: `bearer ${authSession?.access_token}`,
+                authorization: `bearer ${token}`,
             },
         })
         const data = await response.json()
@@ -132,23 +135,9 @@ const AdminUserManagement = () => {
         }
     }
 
-    const setUserSession = async () => {
-        let userSession = null
-        try {
-            userSession = await getUserSession()
-            setAuthSession(userSession)
-        } catch (error) {
-            router.push("/login")
-            return
-        }
-    }
-
     useEffect(() => {
-        setUserSession()
-    }, [])
-    useEffect(() => {
-        if (authSession) fetchUsers()
-    }, [authSession])
+        if (user) fetchUsers()
+    }, [user])
 
     useEffect(() => {
         console.log(users)

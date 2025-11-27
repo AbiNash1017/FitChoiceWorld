@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Edit, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { getUserSession } from '@/lib/auth'
+import { useAuth } from '@/app/context/AuthContext'
 import { AlertDialog, AlertDialogTrigger } from '@radix-ui/react-alert-dialog'
 import { AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Label } from '@/components/ui/label'
@@ -31,19 +31,8 @@ const VendorMembershipManagement = () => {
     const [userSearchInput, setUserSearchInput] = useState('')
     const [foundUser, setFoundUser] = useState(null)
 
-    const [authSession, setAuthSession] = useState(null)
+    const { user, loading } = useAuth()
     const router = useRouter()
-
-    const setUserSession = async () => {
-        let userSession = null
-        try {
-            userSession = await getUserSession()
-            setAuthSession(userSession)
-        } catch (error) {
-            router.push('/login')
-            return;
-        }
-    }
 
     const handleSubmitPlan = async (e) => {
         e.preventDefault();
@@ -84,12 +73,13 @@ const VendorMembershipManagement = () => {
     };
 
     const fetchMembershipPlans = async () => {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/vendor/membershipPlan`, {
+        if (!user) return;
+        const token = await user.getIdToken();
+        const response = await fetch(`/api/vendor/membershipPlan`, {
             method: 'GET',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'authorization': `bearer ${authSession?.access_token}`
+                'authorization': `bearer ${token}`
             }
         })
         const data = await response.json()
@@ -100,14 +90,15 @@ const VendorMembershipManagement = () => {
 
     const addMembershipPlan = async (addPlan) => {
         console.log("reached")
+        if (!user) return;
+        const token = await user.getIdToken();
         const { name, price, duration } = addPlan
         console.log(name, price, duration)
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/vendor/membershipPlan`, {
+        const response = await fetch(`/api/vendor/membershipPlan`, {
             method: 'POST',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'authorization': `bearer ${authSession?.access_token}`
+                'authorization': `bearer ${token}`
             },
             body: JSON.stringify({
                 name,
@@ -128,12 +119,13 @@ const VendorMembershipManagement = () => {
     const updateMembershipPlan = async (plan) => {
         console.log("planid", plan.id)
         console.log("plan", plan)
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/vendor/membershipPlan/${plan.id}`, {
+        if (!user) return;
+        const token = await user.getIdToken();
+        const response = await fetch(`/api/vendor/membershipPlan/${plan.id}`, {
             method: 'PATCH',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'authorization': `bearer ${authSession?.access_token}`
+                'authorization': `bearer ${token}`
             },
             body: JSON.stringify({
                 ...plan
@@ -152,12 +144,13 @@ const VendorMembershipManagement = () => {
 
     const deleteMembershipPlan = async (id) => {
         console.log(id)
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/vendor/membershipPlan/${id}`, {
+        if (!user) return;
+        const token = await user.getIdToken();
+        const response = await fetch(`/api/vendor/membershipPlan/${id}`, {
             method: 'DELETE',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'authorization': `bearer ${authSession?.access_token}`
+                'authorization': `bearer ${token}`
             }
         })
         const data = await response.json()
@@ -170,12 +163,13 @@ const VendorMembershipManagement = () => {
 
     const fetchUserDetails = async (emailOrPhone) => {
         console.log("emailorphone", emailOrPhone)
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/vendor/getUserByEmailOrPhone?q=${emailOrPhone}`, {
+        if (!user) return;
+        const token = await user.getIdToken();
+        const response = await fetch(`/api/vendor/getUserByEmailOrPhone?q=${emailOrPhone}`, {
             method: 'GET',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'authorization': `bearer ${authSession?.access_token}`
+                'authorization': `bearer ${token}`
             }
         })
         const data = await response.json()
@@ -190,12 +184,13 @@ const VendorMembershipManagement = () => {
 
         console.log("Adding membership", planId, id);
 
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/vendor/membership`, {
+        if (!user) return;
+        const token = await user.getIdToken();
+        const response = await fetch(`/api/vendor/membership`, {
             method: 'POST',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'authorization': `bearer ${authSession?.access_token}`
+                'authorization': `bearer ${token}`
             },
             body: JSON.stringify({
                 plan_id: planId,
@@ -220,12 +215,13 @@ const VendorMembershipManagement = () => {
     };
 
     const fetchMemberships = async () => {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/vendor/membership`, {
+        if (!user) return;
+        const token = await user.getIdToken();
+        const response = await fetch(`/api/vendor/membership`, {
             method: 'GET',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'authorization': `bearer ${authSession?.access_token}`
+                'authorization': `bearer ${token}`
             }
         })
         const data = await response.json()
@@ -237,16 +233,17 @@ const VendorMembershipManagement = () => {
     const updateMemberships = async (membership) => {
         console.log("planid", membership.id)
         console.log("plan", membership)
+        if (!user) return;
+        const token = await user.getIdToken();
         let { start_date, end_date } = membership
         if (start_date) start_date = new Date(start_date).toISOString();
         if (end_date) end_date = new Date(end_date).toISOString();
         console.log(start_date, end_date)
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/vendor/membership/${membership.id}`, {
+        const response = await fetch(`/api/vendor/membership/${membership.id}`, {
             method: 'PATCH',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'authorization': `bearer ${authSession?.access_token}`
+                'authorization': `bearer ${token}`
             },
             body: JSON.stringify({
                 start_date,
@@ -266,12 +263,13 @@ const VendorMembershipManagement = () => {
 
     const deleteMemberships = async (id) => {
         console.log(id)
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/vendor/membership/${id}`, {
+        if (!user) return;
+        const token = await user.getIdToken();
+        const response = await fetch(`/api/vendor/membership/${id}`, {
             method: 'DELETE',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'authorization': `bearer ${authSession?.access_token}`
+                'authorization': `bearer ${token}`
             }
         })
         const data = await response.json()
@@ -283,15 +281,11 @@ const VendorMembershipManagement = () => {
     }
 
     useEffect(() => {
-        setUserSession();
-    }, [])
-
-    useEffect(() => {
-        if (authSession) {
+        if (user) {
             fetchMembershipPlans()
             fetchMemberships()
         }
-    }, [authSession])
+    }, [user])
 
     return (
         <div className="container mx-auto p-4 space-y-8">

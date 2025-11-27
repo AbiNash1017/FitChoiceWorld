@@ -6,8 +6,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Logo from '@/public/images/fcw_transparent.png'
 import Image from "next/image";
-import { checkCookies } from "@/lib/utils";
-import supabase from "@/lib/supabase";
 import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 import { auth } from "@/firebaseConfig";
 
@@ -146,71 +144,6 @@ export default function Login() {
             setProcessing(false);
         });
     };
-
-
-    /*
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (processing) return;
-        setProcessing(true)
-        setError(null);
-    
-        if (confirmPassword !== password) {
-            setError("Passwords do not match!")
-            setProcessing(false)
-            return;
-        }
-    
-        try {
-    
-            const auth = await supabase.auth.signUp({
-                email: email_id,
-                password: password,
-                options: {
-                    data: {
-                        _role: 'Owner'
-                    },
-                }
-            })
-            console.log(auth)
-            if (auth.data.user) {
-                const user = await supabase.auth.getSession()
-                console.log(user)
-                router.push('/onboard')
-            }
-            else {
-                setError(auth.error?.message);
-                setProcessing(false)
-                return;
-            }
-            // const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/register`, {
-            //   method: "POST",
-            //   credentials: 'include',
-            //   headers: {
-            //     "Content-Type": "application/json",
-            //   },
-            //   body: JSON.stringify({ email_id, password, role: "Owner" }),
-            // });
-            // const data = await response.json();
-            // console.log(data)
-            // if (data.message !== "OK") {
-            //   setError(data.error);
-            //   return;
-            // }
-            // router.push("/onboard")
-            // if (data.role === "Owner") {
-            //   router.push('/vendor/dashboard')
-            // }
-            // if (data.role === "admin") {
-            //   router.push('/admin/dashboard')
-            // }
-        } catch (err) {
-            setError("Failed to connect to the server!");
-            setProcessing(false)
-        }
-        setProcessing(false)
-    };
-    */
 
     return (
         <div className="min-h-screen flex bg-black">

@@ -4,30 +4,15 @@ import { useFitnessCentre } from "@/app/context/FitnessCentreContext"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { getUserSession } from "@/lib/auth"
+import { useAuth } from "@/app/context/AuthContext"
 import { DollarSign, Mail, Phone } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
 const VendorContactUs = () => {
     const { fitnessCentreId } = useFitnessCentre()
-    const [authSession, setAuthSession] = useState()
+    const { user, loading } = useAuth()
     const router = useRouter();
-
-    const setUserSession = async () => {
-        let userSession = null
-        try {
-            userSession = await getUserSession()
-            setAuthSession(userSession)
-        } catch (error) {
-            router.push('/login')
-            return;
-        }
-    }
-
-    useEffect(() => {
-        setUserSession();
-    }, []);
 
     function isSaturday() {
         return new Date().getDay() === 6;
@@ -35,12 +20,13 @@ const VendorContactUs = () => {
 
     const requestPayment = async () => {
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/vendor/requestPayment`, {
+            if (!user) return;
+            const token = await user.getIdToken();
+            const response = await fetch(`/api/vendor/requestPayment`, {
                 method: 'GET',
-                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'authorization': `bearer ${authSession?.access_token}`
+                    'authorization': `bearer ${token}`
                 },
             })
             const data = await response.json()

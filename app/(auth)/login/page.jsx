@@ -6,8 +6,6 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Logo from '@/public/images/fcw_transparent.png'
-import { checkCookies } from "@/lib/utils";
-import supabase from "@/lib/supabase";
 import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 import { auth } from "@/firebaseConfig";
 // import { cookies } from "next/headers";
@@ -145,68 +143,13 @@ export default function Login() {
                 // Continue anyway as auth was successful
             }
 
-            window.location.href = '/createCentre'; // Redirect to home or dashboard
+            router.push('/createCentre'); // Redirect to home or dashboard
         }).catch((error) => {
             console.error(error);
             setError("Invalid OTP");
             setProcessing(false);
         });
     };
-
-
-    /*
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (processing) return;
-        setProcessing(true)
-        setError(null);
-    
-        try {
-            const auth = await supabase.auth.signInWithPassword({
-                email: email_id,
-                password: password,
-            })
-            // console.log(auth)
-            if (auth.data.user) {
-                const user = await supabase.auth.getSession()
-                // console.log(user)
-                const role = await supabase.from('Users').select('role, id').eq('uid', auth.data.user.id)
-                if (role.data && role.data[0]) {
-                    if (role.data[0].role.toLowerCase() === 'owner') {
-                        // router.push('/vendor/dashboard')
-                        const gym = await supabase.from('Fitness_Centres').select('*').eq('owner_id', role.data[0].id)
-                        if (gym.data && gym.data[0]) {
-                            window.location.href = `/vendor/dashboard`
-                        } else {
-                            window.location.href = `/createCentre`
-                        }
-                    }
-                    if (role.data[0].role === 'admin') {
-                        // router.push('/admin/dashboard')
-                        window.location.href = `/admin/dashboard`
-                    }
-                    if (role.data[0].role.toLowerCase() === 'customer') {
-                        // router.push('/forUser')
-                        window.location.href = `/forUser`
-                    }
-                }
-                if (!role.data || !role.data[0]) {
-                    window.location.href = `/onboard`
-                }
-                setProcessing(false)
-            }
-            else {
-                setError(auth.error?.message);
-                setProcessing(false)
-                return;
-            }
-        } catch (err) {
-            console.log(err)
-            setError("Failed to connect to the server!");
-            setProcessing(false)
-        }
-    };
-    */
 
     return (
         <div className="min-h-screen flex bg-black">

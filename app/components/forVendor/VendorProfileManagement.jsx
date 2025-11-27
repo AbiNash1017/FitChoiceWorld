@@ -7,8 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader, Upload, X } from 'lucide-react';
-import supabase from '@/lib/supabase';
-import { getUserSession } from '@/lib/auth';
+import { useAuth } from '@/app/context/AuthContext';
+import { storage } from '@/firebaseConfig';
+import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { useRouter } from 'next/navigation';
 
 const VendorProfileManagement = () => {
@@ -38,46 +39,38 @@ const VendorProfileManagement = () => {
     const [pendingFitnessImages, setPendingFitnessImages] = useState([]);
     const fileInputRef = useRef(null);
     const headerFileInputRef = useRef(null);
-    const [authSession, setAuthSession] = useState(null)
+    const { user, loading } = useAuth();
     const router = useRouter();
 
-    const setUserSession = async () => {
-        let userSession = null
-        try {
-            userSession = await getUserSession()
-            setAuthSession(userSession)
-        } catch (error) {
-            router.push('/login')
-            return;
-        }
-    }
-
-    useEffect(() => {
-        setUserSession();
-    }, []);
-    useEffect(() => {
-        if (authSession)
-            fetchGymDetails();
-    }, [authSession]);
-
     const fetchGymDetails = async () => {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/fitnessCentre/myDetails`, {
+        if (!user) return;
+        const token = await user.getIdToken();
+        const response = await fetch(`/api/fitness-center/my`, {
             method: 'GET',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authSession?.access_token}`
+                'Authorization': `Bearer ${token}`
             },
         });
         const data = await response.json();
-        const locationDetails = data.data.Location
-        const fetchedDetails = data.data;
-        console.log("fetcheddeets", fetchedDetails)
-        console.log("locationdeets", locationDetails)
-        setGymDetails(fetchedDetails);
-        setLocation(locationDetails)
-        console.log("location", location)
+        if (response.ok && data.data) {
+            const locationDetails = data.data.Location || {}
+            const fetchedDetails = data.data;
+            console.log("fetcheddeets", fetchedDetails)
+            console.log("locationdeets", locationDetails)
+            setGymDetails(fetchedDetails);
+            setLocation(locationDetails)
+            console.log("location", location)
+        }
     };
+
+    useEffect(() => {
+        if (!loading && !user) {
+            router.push('/login')
+        } else if (user) {
+            fetchGymDetails();
+        }
+    }, [user, loading, router]);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -129,20 +122,13 @@ const VendorProfileManagement = () => {
         }
     };
 
-    //upload to supabase bucket
-    const uploadImageToSupabase = async (file, pathPrefix) => {
+    //upload to firebase bucket
+    const uploadImageToFirebase = async (file, pathPrefix) => {
         try {
-            const { data: image, error } = await supabase.storage
-                .from('fitchoice-bucket')
-                .upload(`${pathPrefix}/${Date.now()}-${file.name}`, file);
-
-            if (error) throw error;
-
-            const { data: publicUrl } = supabase.storage
-                .from('fitchoice-bucket')
-                .getPublicUrl(image?.path || '');
-
-            return publicUrl?.publicUrl || null;
+            const storageRef = ref(storage, `${pathPrefix}/${Date.now()}-${file.name}`);
+            const snapshot = await uploadBytes(storageRef, file);
+            const publicUrl = await getDownloadURL(snapshot.ref);
+            return publicUrl;
         } catch (error) {
             console.error('Image upload failed:', error);
             return null;
@@ -155,21 +141,20 @@ const VendorProfileManagement = () => {
         e.preventDefault();
 
         try {
+            if (!user) return;
+            const token = await user.getIdToken();
             let uploadedHeaderImage = null;
             let uploadedFitnessCentreImages = [];
             console.log("inside update", pendingHeaderImage)
             // If a new header image is pending, upload it
             if (pendingHeaderImage) {
                 console.log("inside if pendingHeaderImage")
-                uploadedHeaderImage = await uploadImageToSupabase(pendingHeaderImage, 'fitness-centre-images/header');
+                uploadedHeaderImage = await uploadImageToFirebase(pendingHeaderImage, 'fitness-centre-images/header');
             }
-            // if(pendingHeaderImage === null){
-            //   alert("Header image cannot be empty. Please add a header image and click the 'Update Profile' button")
-            //   return
-            // }
+
             if (pendingFitnessImages) {
                 uploadedFitnessCentreImages = await Promise.all(pendingFitnessImages.map((img) => {
-                    return uploadImageToSupabase(img, 'fitness-centre-images');
+                    return uploadImageToFirebase(img, 'fitness-centre-images');
                 }))
             }
 
@@ -178,9 +163,7 @@ const VendorProfileManagement = () => {
                 ...gymDetails,
                 address: location.address,
                 pincode: location.pincode,
-                header_image: pendingHeaderImage ? uploadedHeaderImage : null,
-                // header_image: pendingHeaderImage ? uploadedHeaderImage : "",
-                // header_image: uploadedHeaderImage || gymDetails.header_image || '', // Ensure it reflects cleared state
+                header_image: pendingHeaderImage ? uploadedHeaderImage : (gymDetails.header_image || null),
                 centre_images: [
                     ...gymDetails.centre_images, // Keep existing images
                     ...uploadedFitnessCentreImages.filter((img) => img !== null) // Add only successfully uploaded images
@@ -189,12 +172,11 @@ const VendorProfileManagement = () => {
 
             console.log("updatedDetails", updatedDetails.header_image)
 
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/fitnessCentre/editProfile`, {
+            const response = await fetch(`/api/fitness-center/update`, {
                 method: 'PATCH',
-                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authSession?.access_token}`
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify(updatedDetails),
             });

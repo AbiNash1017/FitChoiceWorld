@@ -16,13 +16,12 @@ export async function POST(req) {
         if (!user) {
             user = await User.create({
                 uid,
-                mobile_no: phoneNumber,
+                phone_number: phoneNumber,
             });
         } else {
-            // Update existing user if needed, e.g. update mobile number if it changed (unlikely for same UID but possible)
-            // For now just ensuring it exists
-            if (user.mobile_no !== phoneNumber) {
-                user.mobile_no = phoneNumber;
+            // Update existing user if needed
+            if (user.phone_number !== phoneNumber) {
+                user.phone_number = phoneNumber;
                 await user.save();
             }
         }

@@ -14,13 +14,13 @@ import VendorUserCommunication from '@/app/components/forVendor/VendorUserCommun
 import VendorContactUs from '@/app/components/forVendor/VendorContactUs'
 import VendorCouponsAndBanners from '@/app/components/forVendor/VendorCouponBanner'
 import VendorMembershipManagement from '@/app/components/forVendor/VendorMemberships'
-import { getUserSession } from '@/lib/auth'
+import { useAuth } from '@/app/context/AuthContext'
 import { useRouter } from 'next/navigation'
 
 
 const VendorDashboard = () => {
     const [activeTab, setActiveTab] = useState('overview')
-    const [authSession, setAuthSession] = useState(null)
+    const { user, loading } = useAuth();
     const router = useRouter();
 
     const tabs = [
@@ -35,20 +35,11 @@ const VendorDashboard = () => {
         { id: 'contact_us', label: 'Contact Admin', icon: LucidePhoneCall },
     ]
 
-    const setUserSession = async () => {
-        let userSession = null
-        try {
-            userSession = await getUserSession()
-            setAuthSession(userSession)
-        } catch (error) {
-            router.push('/login')
-            return;
-        }
-    }
-
     useEffect(() => {
-        setUserSession()
-    })
+        if (!loading && !user) {
+            router.push('/login')
+        }
+    }, [user, loading, router])
 
     return (
         <div className="flex h-screen bg-gray-100 dark:bg-gray-900">

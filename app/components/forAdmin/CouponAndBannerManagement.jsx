@@ -16,9 +16,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
-import supabase from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-import { getUserSession } from '@/lib/auth'
+import { useAuth } from '@/app/context/AuthContext'
 import Image from 'next/image'
 
 export default function CouponBannerRequestsPage() {
@@ -28,18 +27,19 @@ export default function CouponBannerRequestsPage() {
     const fileInputRef = useRef(null);
     const [loadingCoupon, setLoadingCoupon] = useState(false)
     const [loadingBanner, setLoadingBanner] = useState(false)
-    const [authSession, setAuthSession] = useState(null)
+    const { user, loading } = useAuth()
     const router = useRouter()
 
     const fetchCoupons = async () => {
         try {
+            if (!user) return;
             setLoadingCoupon(true)
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/getCouponRequests`, {
+            const token = await user.getIdToken();
+            const response = await fetch(`/api/admin/getCouponRequests`, {
                 method: 'GET',
-                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authSession?.access_token}`
+                    'Authorization': `Bearer ${token}`
                 }
             })
             const data = await response.json()
@@ -55,12 +55,13 @@ export default function CouponBannerRequestsPage() {
 
     const handleDeleteCoupon = async (id) => {
         console.log(id)
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/coupon/${id}`, {
+        if (!user) return;
+        const token = await user.getIdToken();
+        const response = await fetch(`/api/admin/coupon/${id}`, {
             method: 'DELETE',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'authorization': `bearer ${authSession?.access_token}`,
+                'Authorization': `Bearer ${token}`,
             }
         })
         const data = await response.json()
@@ -74,12 +75,13 @@ export default function CouponBannerRequestsPage() {
 
     const handleDeleteBanner = async (id) => {
         console.log(id)
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/banner/${id}`, {
+        if (!user) return;
+        const token = await user.getIdToken();
+        const response = await fetch(`/api/admin/banner/${id}`, {
             method: 'DELETE',
-            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authSession?.access_token}`
+                'Authorization': `Bearer ${token}`
             }
         })
         const data = await response.json()
@@ -93,13 +95,14 @@ export default function CouponBannerRequestsPage() {
 
     const fetchBanners = async () => {
         try {
+            if (!user) return;
             setLoadingBanner(true)
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/getBannerRequests`, {
+            const token = await user.getIdToken();
+            const response = await fetch(`/api/admin/getBannerRequests`, {
                 method: 'GET',
-                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authSession?.access_token}`
+                    'Authorization': `Bearer ${token}`
                 }
             })
             // if (!response.ok) {
@@ -121,12 +124,14 @@ export default function CouponBannerRequestsPage() {
     const approveCoupon = async (id) => {
         try {
             console.log(id)
+            if (!user) return;
+            const token = await user.getIdToken();
             const approved = true
-            const request = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/coupon/${id}`, {
+            const request = await fetch(`/api/admin/coupon/${id}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authSession?.access_token}`
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
 
@@ -151,12 +156,14 @@ export default function CouponBannerRequestsPage() {
 
     const approveBanner = async (id) => {
         try {
+            if (!user) return;
+            const token = await user.getIdToken();
             const status = true
-            const request = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/banner/${id}`, {
+            const request = await fetch(`/api/admin/banner/${id}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authSession?.access_token}`
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     approved: status
@@ -172,25 +179,12 @@ export default function CouponBannerRequestsPage() {
         }
     }
 
-    const setUserSession = async () => {
-        let userSession = null
-        try {
-            userSession = await getUserSession()
-            setAuthSession(userSession)
-        } catch (error) {
-            router.push('/login')
-            return;
+    useEffect(() => {
+        if (user) {
+            fetchCoupons()
+            fetchBanners()
         }
-    }
-
-    useEffect(() => {
-        setUserSession()
-    }, [])
-
-    useEffect(() => {
-        fetchCoupons()
-        fetchBanners()
-    }, [authSession])
+    }, [user])
 
     return (
         <div className="container mx-auto space-y-6">

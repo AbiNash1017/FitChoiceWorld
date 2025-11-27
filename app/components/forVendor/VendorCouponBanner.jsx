@@ -13,8 +13,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import { useRouter } from 'next/navigation'
-import { getUserSession } from '@/lib/auth'
-import supabase from '@/lib/supabase'
+import { useAuth } from '@/app/context/AuthContext'
+import { storage } from '@/firebaseConfig'
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { useFitnessCentre } from '@/app/context/FitnessCentreContext'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -49,56 +50,48 @@ const VendorCouponsAndBanners = () => {
     const [imagePreview, setImagePreview] = useState(null);
     const fileInputRef = useRef(null);
     const headerFileInputRef = useRef(null);
-    const [authSession, setAuthSession] = useState()
+    const { user, loading: authLoading } = useAuth()
     const [loading, setLoading] = useState(false)
     const [coupons, setCoupons] = useState()
     const [banners, setBanners] = useState();
     const router = useRouter();
 
-    const setUserSession = async () => {
-        let userSession = null
-        try {
-            userSession = await getUserSession()
-            setAuthSession(userSession)
-        } catch (error) {
-            router.push('/login')
-            return;
-        }
-    }
-
     const fetchCoupons = async () => {
         try {
+            if (!user) return;
             setLoading(true)
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/vendor/coupons`, {
+            const token = await user.getIdToken();
+            const response = await fetch(`/api/vendor/coupons`, {
                 method: 'GET',
-                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'authorization': `bearer ${authSession?.access_token}`
+                    'Authorization': `Bearer ${token}`
                 }
             });
             if (!response.ok) {
-                alert(response)
+                // alert(response)
             }
             const data = await response.json();
-            const fetchedCoupons = data.data
+            const fetchedCoupons = data.data || []
             const approvedCoupons = fetchedCoupons.filter((coupon) => coupon.approved === true)
             setCoupons(approvedCoupons);
             console.log(approvedCoupons)
             setLoading(false)
         } catch (error) {
             console.error('Error fetching coupons:', error);
+            setLoading(false)
         }
     };
 
     const fetchBanners = async () => {
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/vendor/banners`, {
+            if (!user) return;
+            const token = await user.getIdToken();
+            const response = await fetch(`/api/vendor/banners`, {
                 method: 'GET',
-                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authSession?.access_token}`
+                    'Authorization': `Bearer ${token}`
                 }
             })
             // if (!response.ok) {
@@ -126,15 +119,11 @@ const VendorCouponsAndBanners = () => {
     };
 
     useEffect(() => {
-        setUserSession();
-    }, []);
-
-    useEffect(() => {
-        if (authSession) {
+        if (user) {
             fetchCoupons();
             fetchBanners();
         }
-    }, [authSession]);
+    }, [user]);
 
     const validateCouponForm = () => {
         const errors = {}
@@ -168,13 +157,14 @@ const VendorCouponsAndBanners = () => {
 
         setIsCouponSubmitting(true)
         try {
+            if (!user) return;
+            const token = await user.getIdToken();
             console.log(fitnessCentreId)
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/vendor/requestCoupon`, {
+            const response = await fetch(`/api/vendor/requestCoupon`, {
                 method: 'POST',
-                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'authorization': `bearer ${authSession?.access_token}`
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     ...couponData,
@@ -229,16 +219,17 @@ const VendorCouponsAndBanners = () => {
 
     const addBanner = async (banner) => {
         try {
+            if (!user) return;
+            const token = await user.getIdToken();
             console.log(fitnessCentreId)
             const { start_date, end_date, banner_title, banner_description } = banner;
 
             console.log('Sending banner:', JSON.stringify(banner));
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/vendor/requestBanner`, {
+            const response = await fetch(`/api/vendor/requestBanner`, {
                 method: 'POST',
-                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authSession?.access_token}`
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     ...banner,
@@ -265,7 +256,7 @@ const VendorCouponsAndBanners = () => {
     const handleImageChange = async (e) => {
         const file = e.target.files?.[0];
         if (file) {
-            const uploadedImageUrl = await uploadImageToSupabase(file, 'banners');
+            const uploadedImageUrl = await uploadImageToFirebase(file, 'banners');
 
             if (uploadedImageUrl) {
                 setImagePreview(uploadedImageUrl);
@@ -279,19 +270,12 @@ const VendorCouponsAndBanners = () => {
         }
     };
 
-    const uploadImageToSupabase = async (file, pathPrefix) => {
+    const uploadImageToFirebase = async (file, pathPrefix) => {
         try {
-            const { data: image, error } = await supabase.storage
-                .from('fitchoice-bucket')
-                .upload(`${pathPrefix}/${Date.now()}-${file.name}`, file);
-
-            if (error) throw error;
-
-            const { data: publicUrl } = supabase.storage
-                .from('fitchoice-bucket')
-                .getPublicUrl(image?.path || '');
-
-            return publicUrl?.publicUrl || null;
+            const storageRef = ref(storage, `${pathPrefix}/${Date.now()}-${file.name}`);
+            const snapshot = await uploadBytes(storageRef, file);
+            const publicUrl = await getDownloadURL(snapshot.ref);
+            return publicUrl;
         } catch (error) {
             console.error('Image upload failed:', error);
             return null;

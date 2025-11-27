@@ -1,7 +1,7 @@
 'use client'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import supabase from '@/lib/supabase'
+import { useAuth } from '@/app/context/AuthContext'
 import { Bell, ChevronDown, LogOut } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import React from 'react'
@@ -11,36 +11,31 @@ import React from 'react'
 const AdminHeader = () => {
 
     const router = useRouter()
+    const { logout } = useAuth()
 
     const handleLogout = async () => {
-        try {
-            await supabase.auth.signOut()
-            router.push('/login')
-        }
-        catch (error) {
-            console.error(error.message)
-            alert(error.message)
-        }
-        // try {
-        //   const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, {
-        //     method: 'POST',
-        //     credentials: 'include',
-        //     headers: {
-        //       'Content-Type': 'application/json',
-        //     },
-        //   })
-        //   const result = await response.json()
-        //   if (result.message !== "Successfully logged out") {
-        //     alert("Error: " + result.error)
-        //   }
-        //   else {
-        //     console.log("Successfully logged out!")
-        //     router.push('/login')
-        //   }
-        // } catch (error) {
-        //   alert("Some error occured: " + error)
-        // }
+        await logout()
     }
+    // try {
+    //   const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, {
+    //     method: 'POST',
+    //     credentials: 'include',
+    //     headers: {
+    //       'Content-Type': 'application/json',
+    //     },
+    //   })
+    //   const result = await response.json()
+    //   if (result.message !== "Successfully logged out") {
+    //     alert("Error: " + result.error)
+    //   }
+    //   else {
+    //     console.log("Successfully logged out!")
+    //     router.push('/login')
+    //   }
+    // } catch (error) {
+    //   alert("Some error occured: " + error)
+    // }
+    // }
 
     return (
         <header className="text-black">
