@@ -145,7 +145,7 @@ export default function Login() {
                 // Continue anyway as auth was successful
             }
 
-            window.location.href = '/'; // Redirect to home or dashboard
+            window.location.href = '/createCentre'; // Redirect to home or dashboard
         }).catch((error) => {
             console.error(error);
             setError("Invalid OTP");
