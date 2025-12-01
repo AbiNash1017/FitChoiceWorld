@@ -143,7 +143,11 @@ export default function Login() {
                 // Continue anyway as auth was successful
             }
 
-            router.push('/createCentre'); // Redirect to home or dashboard
+
+
+
+            window.location.href = '/onboard'; // Redirect to onboard page
+
         }).catch((error) => {
             console.error(error);
             setError("Invalid OTP");

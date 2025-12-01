@@ -13,17 +13,50 @@ export default function Onboard() {
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
     const [gender, setGender] = useState("");
+    const [dob, setDob] = useState("");
     const [mobileNumber, setMobileNumuber] = useState("");
+    const [city, setCity] = useState("");
+    const [state, setState] = useState("");
+    const [location, setLocation] = useState();
     const [error, setError] = useState(null);
     const [processing, setProcessing] = useState(false);
+
     const { user, loading } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
         if (!loading && !user) {
             router.push('/login');
+        } else if (user && user.phoneNumber) {
+            setMobileNumuber(user.phoneNumber);
         }
     }, [user, loading, router]);
+
+    useEffect(() => {
+        if (!navigator.geolocation) {
+            setLocation((prev) => ({
+                ...prev,
+                error: 'Geolocation is not supported by your browser',
+            }));
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                setLocation({
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                    error: null,
+                });
+            },
+            (error) => {
+                setLocation((prev) => ({
+                    ...prev,
+                    error: error.message,
+                }));
+            }
+        );
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -33,7 +66,7 @@ export default function Onboard() {
 
         try {
             const token = await user.getIdToken();
-            const response = await fetch(`/api/user/update`, {
+            const response = await fetch(`/api/auth/onboardOwner`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -42,8 +75,14 @@ export default function Onboard() {
                 body: JSON.stringify({
                     first_name: firstName,
                     last_name: lastName,
-                    gender: gender === 'male' ? 0 : 1,
-                    phone_number: mobileNumber,
+                    gender,
+                    dob,
+                    state,
+                    city,
+                    mobile_no: mobileNumber,
+                    latitude: location?.latitude?.toString(),
+                    longitude: location?.longitude?.toString(),
+                    address: ""
                 }),
             });
 
@@ -148,6 +187,14 @@ export default function Onboard() {
                                 </SelectContent>
                             </Select>
                             <Input
+                                type="date"
+                                placeholder="DoB"
+                                value={dob}
+                                onChange={(e) => setDob(e.target.value)}
+                                required
+                                className="bg-white/80 placeholder:text-gray-500"
+                            />
+                            <Input
                                 type="number"
                                 placeholder="Mobile Number"
                                 value={mobileNumber}
@@ -155,6 +202,23 @@ export default function Onboard() {
                                 required
                                 className="bg-white/80 placeholder:text-gray-500"
                             />
+                            <Input
+                                type="text"
+                                placeholder="City"
+                                value={city}
+                                onChange={(e) => setCity(e.target.value)}
+                                required
+                                className="bg-white/80 placeholder:text-gray-500"
+                            />
+                            <Input
+                                type="text"
+                                placeholder="State"
+                                value={state}
+                                onChange={(e) => setState(e.target.value)}
+                                required
+                                className="bg-white/80 placeholder:text-gray-500"
+                            />
+
                             {error && <p style={{ color: "red" }}>{error}</p>}
                             <div>
                                 <Button type="submit" disabled={!user || processing} className={`w-full mt-3 bg-red-700 hover:bg-red-800 ${!user && 'bg-gray-500 hover:bg-gray-700'}`}>

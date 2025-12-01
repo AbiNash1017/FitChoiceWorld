@@ -1,3 +1,5 @@
+// app/api/auth/onboardOwner/route.js
+
 import { adminAuth } from '@/lib/firebaseAdmin'
 import { NextResponse } from 'next/server'
 import dbConnect from '@/lib/db'
