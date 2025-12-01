@@ -14,7 +14,6 @@ import { useFitnessCentre } from '@/app/context/FitnessCentreContext'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/app/context/AuthContext'
 
-
 const VendorSessionManagement = () => {
     const [showEditModal, setShowEditModal] = useState(false)
     const [showDeleteModal, setShowDeleteModal] = useState(false)
