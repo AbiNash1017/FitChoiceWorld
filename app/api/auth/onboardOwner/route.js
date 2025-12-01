@@ -66,8 +66,9 @@ export async function POST(request) {
 
         // Handle duplicate key error specifically
         if (error.code === 11000) {
+            const field = Object.keys(error.keyValue)[0];
             return NextResponse.json({
-                error: 'User already exists with this UID',
+                error: `Duplicate value for field: ${field}`,
                 details: error.keyValue
             }, { status: 409 })
         }
