@@ -37,33 +37,10 @@ export async function POST(request) {
         // Connect to MongoDB
         await dbConnect()
 
-        // Check if user already exists
-        const existingUser = await User.findOne({ uid: uid })
-
-        let updatedUser
-        if (existingUser) {
-            // Update existing user
-            updatedUser = await User.findOneAndUpdate(
-                { uid: uid },
-                {
-                    first_name,
-                    last_name,
-                    gender,
-                    dob,
-                    state,
-                    city,
-                    phone_number: mobile_no,
-                    latitude,
-                    longitude,
-                    address,
-                    updated_at: new Date(),
-                },
-                { new: true, runValidators: true }
-            )
-        } else {
-            // Create new user
-            updatedUser = await User.create({
-                uid: uid,
+        // Upsert user (create if not exists, update if exists)
+        const updatedUser = await User.findOneAndUpdate(
+            { uid: uid },
+            {
                 first_name,
                 last_name,
                 gender,
@@ -74,8 +51,10 @@ export async function POST(request) {
                 latitude,
                 longitude,
                 address,
-            })
-        }
+                updated_at: new Date(),
+            },
+            { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
+        )
 
         return NextResponse.json({
             message: 'User onboarded successfully',
