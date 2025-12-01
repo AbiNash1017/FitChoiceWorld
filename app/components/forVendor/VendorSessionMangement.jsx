@@ -13,7 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useFitnessCentre } from '@/app/context/FitnessCentreContext'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/app/context/AuthContext'
-import { useRouter } from 'next/navigation'
+
 
 const VendorSessionManagement = () => {
     const [showEditModal, setShowEditModal] = useState(false)

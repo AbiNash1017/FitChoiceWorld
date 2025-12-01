@@ -1,8 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from 'firebase-admin';
-import { customInitApp } from '@/lib/firebase-admin-config';
-
-customInitApp();
+import { adminAuth } from '@/lib/firebaseAdmin';
 
 export async function PATCH(request, { params }) {
     try {
@@ -13,7 +10,7 @@ export async function PATCH(request, { params }) {
         }
 
         const token = authHeader.split('Bearer ')[1];
-        await auth().verifyIdToken(token);
+        await adminAuth.verifyIdToken(token);
 
         const body = await request.json();
         const { status } = body;

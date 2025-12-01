@@ -2,7 +2,7 @@ import React from 'react'
 import Header from '../components/landing/Header'
 import Footer from '../components/landing/Footer'
 import VendorHero from '../components/landing/VendorHero'
-import VendorFeatures from '../components/landing/VendorFeatues'
+import VendorFeatures from '../components/landing/VendorFeatures'
 import Memberships from '../components/landing/Memberships'
 
 const FitnessCenter = () => {
