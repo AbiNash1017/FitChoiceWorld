@@ -4,6 +4,8 @@ import { twMerge } from "tailwind-merge";
 import { FitnessCentreProvider } from "./context/FitnessCentreContext";
 import { AuthProvider } from "./context/AuthContext";
 
+import { ThemeProvider } from "./components/theme-provider";
+
 // const dmsans= DM_Sans({subsets: ['latin']})
 
 const inter = Inter({
@@ -21,15 +23,22 @@ export default function RootLayout({
     children,
 }) {
     return (
-        <html lang="en">
+        <html lang="en" suppressHydrationWarning>
             <body
-                className={twMerge(inter.className, "antialiased bg-[#EAEEFE]")}
+                className={twMerge(inter.className, "antialiased bg-[#EAEEFE] dark:bg-background")}
             >
-                <AuthProvider>
-                    <FitnessCentreProvider>
-                        {children}
-                    </FitnessCentreProvider>
-                </AuthProvider>
+                <ThemeProvider
+                    attribute="class"
+                    defaultTheme="system"
+                    enableSystem
+                    disableTransitionOnChange
+                >
+                    <AuthProvider>
+                        <FitnessCentreProvider>
+                            {children}
+                        </FitnessCentreProvider>
+                    </AuthProvider>
+                </ThemeProvider>
             </body>
         </html>
     );
