@@ -195,7 +195,7 @@ export default function Onboard() {
                                 className="bg-white/80 placeholder:text-gray-500"
                             />
                             <Input
-                                type="number"
+                                type="tel"
                                 placeholder="Mobile Number"
                                 value={mobileNumber}
                                 onChange={(e) => setMobileNumuber(e.target.value)}
