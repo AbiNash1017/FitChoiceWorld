@@ -34,15 +34,24 @@ async function dropIndex() {
 
         console.log('Current indexes:', indexes.map(i => i.name));
 
-        const indexName = 'f_uid_1'; // Assuming default name, but we'll check
+        // Drop f_uid index if exists
         const fUidIndex = indexes.find(i => i.key.f_uid);
-
         if (fUidIndex) {
             console.log(`Found index on f_uid: ${fUidIndex.name}. Dropping...`);
             await collection.dropIndex(fUidIndex.name);
-            console.log('Index dropped successfully.');
+            console.log('Index f_uid dropped successfully.');
         } else {
             console.log('Index on f_uid not found.');
+        }
+
+        // Drop username index if exists
+        const usernameIndex = indexes.find(i => i.key.username);
+        if (usernameIndex) {
+            console.log(`Found index on username: ${usernameIndex.name}. Dropping...`);
+            await collection.dropIndex(usernameIndex.name);
+            console.log('Index username dropped successfully.');
+        } else {
+            console.log('Index on username not found.');
         }
 
         await mongoose.disconnect();
