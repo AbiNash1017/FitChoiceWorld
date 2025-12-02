@@ -30,7 +30,15 @@ export const AuthProvider = ({ children }) => {
 
                     if (response.ok) {
                         const userData = await response.json();
-                        setUser({ ...firebaseUser, ...userData });
+                        // setUser({ ...firebaseUser, ...userData });
+                        setUser({
+                            ...userData,
+                            uid: firebaseUser.uid,
+                            email: firebaseUser.email,
+                            phoneNumber: firebaseUser.phoneNumber,
+                            photoURL: firebaseUser.photoURL,
+                            getIdToken: (forceRefresh) => firebaseUser.getIdToken(forceRefresh),
+                        });
                     } else {
                         // If user not found in DB, just set firebase user (might be first login/onboarding)
                         setUser(firebaseUser);
