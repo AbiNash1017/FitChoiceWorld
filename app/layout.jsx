@@ -3,7 +3,6 @@ import "./globals.css";
 import { twMerge } from "tailwind-merge";
 import { FitnessCentreProvider } from "./context/FitnessCentreContext";
 import { AuthProvider } from "./context/AuthContext";
-import { ThemeProvider } from "./components/theme-provider";
 
 // const dmsans= DM_Sans({subsets: ['latin']})
 
@@ -22,22 +21,15 @@ export default function RootLayout({
     children,
 }) {
     return (
-        <html lang="en" suppressHydrationWarning>
+        <html lang="en">
             <body
                 className={twMerge(inter.className, "antialiased bg-[#EAEEFE]")}
             >
-                <ThemeProvider
-                    attribute="class"
-                    defaultTheme="dark"
-                    enableSystem
-                    disableTransitionOnChange
-                >
-                    <AuthProvider>
-                        <FitnessCentreProvider>
-                            {children}
-                        </FitnessCentreProvider>
-                    </AuthProvider>
-                </ThemeProvider>
+                <AuthProvider>
+                    <FitnessCentreProvider>
+                        {children}
+                    </FitnessCentreProvider>
+                </AuthProvider>
             </body>
         </html>
     );
