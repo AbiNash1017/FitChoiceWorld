@@ -8,6 +8,7 @@ import Logo from '@/public/images/fcw_transparent.png'
 import Image from "next/image";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/app/context/AuthContext";
 
 
 import { Textarea } from "@/components/ui/textarea";
