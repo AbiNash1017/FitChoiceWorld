@@ -9,7 +9,7 @@ const VendorSidebar = ({ tabs, activeTab, setActiveTab }) => {
     const [isCollapsed, setIsCollapsed] = useState(false)
 
     return (
-        <aside className={`bg-[#5d1212] dark:bg-gray-800 transition-all duration-300 ease-in-out ${isCollapsed ? 'w-16' : 'w-60'} flex flex-col`}>
+        <aside className={`bg-[#5d1212] dark:bg-gray-800 transition-all duration-300 ease-in-out ${isCollapsed ? 'w-16' : 'w-72'} flex flex-col`}>
             <div className='flex justify-between items-center p-4 h-16'>
                 <div className={`flex items-center ${isCollapsed ? 'justify-center w-full' : 'space-x-2'} transition-all duration-300 ease-in-out`}>
                     <div className={`transition-all duration-300 ease-in-out ${isCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'} overflow-hidden`}>
@@ -35,8 +35,8 @@ const VendorSidebar = ({ tabs, activeTab, setActiveTab }) => {
                     <Button
                         key={tab.id}
                         className={`w-full justify-start mb-2 text-white border-none transition-all duration-300 ease-in-out ${activeTab === tab.id
-                                ? "bg-red-800 hover:bg-red-800"
-                                : "bg-opacity-10 bg-yellow-300 hover:bg-yellow-600 hover:bg-opacity-15"
+                            ? "bg-red-800 hover:bg-red-800"
+                            : "bg-opacity-10 bg-yellow-300 hover:bg-yellow-600 hover:bg-opacity-15"
                             } ${isCollapsed ? 'px-4' : 'px-4'}`}
                         onClick={() => setActiveTab(tab.id)}
                     >

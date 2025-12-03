@@ -9,7 +9,28 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [userStatus, setUserStatus] = useState(null);
     const router = useRouter();
+
+    // Function to check user status
+    const checkUserStatus = async (token) => {
+        try {
+            const response = await fetch('/api/auth/status', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                const status = await response.json();
+                setUserStatus(status);
+                return status;
+            }
+        } catch (error) {
+            console.error("Error checking user status:", error);
+        }
+        return null;
+    };
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -30,7 +51,8 @@ export const AuthProvider = ({ children }) => {
 
                     if (response.ok) {
                         const userData = await response.json();
-                        // setUser({ ...firebaseUser, ...userData });
+
+                        // Set user with combined data
                         setUser({
                             ...userData,
                             uid: firebaseUser.uid,
@@ -39,9 +61,13 @@ export const AuthProvider = ({ children }) => {
                             photoURL: firebaseUser.photoURL,
                             getIdToken: (forceRefresh) => firebaseUser.getIdToken(forceRefresh),
                         });
+
+                        // Check user status for routing
+                        await checkUserStatus(token);
                     } else {
                         // If user not found in DB, just set firebase user (might be first login/onboarding)
                         setUser(firebaseUser);
+                        await checkUserStatus(token);
                     }
                 } catch (error) {
                     console.error("Error fetching user data:", error);
@@ -51,6 +77,7 @@ export const AuthProvider = ({ children }) => {
                 // Remove cookie
                 document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
                 setUser(null);
+                setUserStatus(null);
             }
             setLoading(false);
         });
@@ -62,14 +89,15 @@ export const AuthProvider = ({ children }) => {
         try {
             await signOut(auth);
             setUser(null);
-            router.push("/login"); // Or wherever you want to redirect
+            setUserStatus(null);
+            router.push("/login");
         } catch (error) {
             console.error("Error signing out:", error);
         }
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, logout }}>
+        <AuthContext.Provider value={{ user, loading, logout, userStatus, checkUserStatus }}>
             {!loading && children}
         </AuthContext.Provider>
     );

@@ -51,6 +51,7 @@ export async function POST(request) {
                 latitude,
                 longitude,
                 address,
+                onboarding_completed: true,
                 updated_at: new Date(),
             },
             { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
@@ -58,7 +59,8 @@ export async function POST(request) {
 
         return NextResponse.json({
             message: 'User onboarded successfully',
-            user: updatedUser
+            user: updatedUser,
+            nextStep: '/createCentre'
         }, { status: 200 })
 
     } catch (error) {

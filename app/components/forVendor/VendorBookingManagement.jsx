@@ -127,12 +127,14 @@ const VendorBookingManagement = () => {
                 <CardContent>
                     <div className="flex flex-col lg:flex-row space-y-6 lg:space-y-0 lg:space-x-6">
                         <div className="w-full lg:w-1/4 space-y-6">
-                            <Calendar
-                                className="flex justify-center items-center rounded-md border"
-                                mode="single"
-                                selected={selectedDate}
-                                onSelect={handleDateSelect}
-                            />
+                            <div className="p-4 border rounded-lg shadow-sm bg-white">
+                                <Calendar
+                                    className="flex justify-center items-center rounded-md border"
+                                    mode="single"
+                                    selected={selectedDate}
+                                    onSelect={handleDateSelect}
+                                />
+                            </div>
                             <Card>
                                 <CardHeader>
                                     <CardTitle>Total Bookings</CardTitle>

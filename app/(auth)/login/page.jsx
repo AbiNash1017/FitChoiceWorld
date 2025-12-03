@@ -143,10 +143,27 @@ export default function Login() {
                 // Continue anyway as auth was successful
             }
 
+            // Check user status and redirect appropriately
+            try {
+                const token = await user.getIdToken();
+                const statusResponse = await fetch('/api/auth/status', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
 
-
-
-            window.location.href = '/onboard'; // Redirect to onboard page
+                if (statusResponse.ok) {
+                    const status = await statusResponse.json();
+                    window.location.href = status.nextStep;
+                } else {
+                    // Fallback to onboard if status check fails
+                    window.location.href = '/onboard';
+                }
+            } catch (error) {
+                console.error("Failed to check user status:", error);
+                // Fallback to onboard if status check fails
+                window.location.href = '/onboard';
+            }
 
         }).catch((error) => {
             console.error(error);

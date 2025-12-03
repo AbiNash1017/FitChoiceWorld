@@ -280,6 +280,36 @@ export default function CreateCentre() {
         if (!loading && !user) {
             router.push('/login')
         }
+
+        // Check if user has completed onboarding and already has a fitness center
+        if (user && !loading) {
+            const checkStatus = async () => {
+                try {
+                    const token = await user.getIdToken();
+                    const response = await fetch('/api/auth/status', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        const status = await response.json();
+
+                        // If onboarding is not complete, redirect to onboard
+                        if (!status.onboardingCompleted) {
+                            router.push('/onboard');
+                        }
+                        // If user already has a fitness center, redirect to dashboard
+                        else if (status.hasFitnessCenter) {
+                            router.push('/vendor/dashboard');
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error checking status:", error);
+                }
+            };
+            checkStatus();
+        }
     }, [user, loading, router])
 
     useEffect(() => {
@@ -355,8 +385,9 @@ export default function CreateCentre() {
                 setProcessing(false)
                 return;
             }
-            alert("Fitness Centre created successfully! Login to continue")
-            router.push('/login')
+
+            // Redirect to dashboard after successful creation
+            router.push(data.nextStep || '/vendor/dashboard')
         } catch (err) {
             console.log(err)
             setProcessing(false)

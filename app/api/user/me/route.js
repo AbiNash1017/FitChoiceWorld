@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { adminAuth } from '@/lib/firebaseAdmin';
 import dbConnect from '@/lib/db';
 import User from '@/lib/models/User';
+import FitnessCenter from '@/lib/models/fitnessCenters';
 
 export async function GET(request) {
     const authHeader = request.headers.get('Authorization');
@@ -22,7 +23,15 @@ export async function GET(request) {
             return NextResponse.json({ error: 'User not found' }, { status: 404 });
         }
 
-        return NextResponse.json(user);
+        // Check fitness center ownership
+        const fitnessCenter = await FitnessCenter.findOne({ owner_id: uid });
+
+        // Convert user to object and add additional fields
+        const userObject = user.toObject();
+        userObject.onboarding_completed = user.isOnboardingComplete();
+        userObject.hasFitnessCenter = !!fitnessCenter;
+
+        return NextResponse.json(userObject);
     } catch (error) {
         console.error('Error verifying token or fetching user:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

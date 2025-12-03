@@ -587,70 +587,68 @@ const VendorSessionManagement = () => {
                 <CardHeader className="p-0 pb-4">
                     <CardTitle>Session Calendar</CardTitle>
                 </CardHeader>
-                <CardContent className="p-0">
-                    <div className="flex flex-col lg:flex-row space-y-4 lg:space-y-0 lg:space-x-4">
-                        <div className="w-full lg:w-1/4 flex justify-center items-center">
-                            <Calendar
-                                mode="single"
-                                selected={date}
-                                onSelect={setDate}
-                                className="rounded-md border"
-                            />
+                <CardContent className="p-4">
+                    <div className="flex flex-col xl:flex-row gap-6">
+                        <div className="w-full xl:w-auto flex justify-center items-start">
+                            <div className="p-4 border rounded-lg shadow-sm bg-white">
+                                <Calendar
+                                    mode="single"
+                                    selected={date}
+                                    onSelect={setDate}
+                                    className="rounded-md"
+                                />
+                            </div>
                         </div>
-                        <div className="w-full lg:w-3/4">
-                            <h3 className="text-lg font-semibold mb-2">Sessions for {date?.toDateString()}</h3>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="w-full flex-1">
+                            <h3 className="text-lg font-semibold mb-4">Sessions for {date?.toDateString()}</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                                 {availabilities && availabilities.length > 0 ? (
                                     availabilities
                                         .filter(availability => {
                                             const dayName = date
                                                 ? date.toLocaleDateString("en-US", { weekday: "long" }).toLowerCase()
                                                 : null;
-                                            // console.log("Selected day name:", dayName); 
-                                            // console.log("Availability day:", availability.day);               
                                             return (
                                                 dayName && availability.day.toLowerCase() === dayName
                                             );
                                         })
                                         .map(availability => {
-                                            // console.log("Availability ID:", availability.id);
-                                            // console.log("Session ID from availability:", availability.session_id);
                                             const session = sessions.find(
                                                 s => s.id === availability.session_id
                                             );
                                             if (!session) {
-                                                console.warn(
-                                                    `No session found for availability ID: ${availability.id}`
-                                                );
                                                 return null;
                                             }
                                             return (
                                                 <Card
                                                     key={availability.id}
-                                                    className="group relative hover:bg-[#d3d0d0] transition-colors"
+                                                    className="group relative hover:shadow-md transition-all border-l-4 border-l-red-600"
                                                 >
-                                                    <CardContent className="p-3">
-                                                        <div className="flex justify-between items-start">
-                                                            <div>
-                                                                <h4 className="font-semibold">{session.category}</h4>
-                                                                <div className="text-gray-500 flex items-center">
-                                                                    <Clock className="w-3 h-3 mr-1" />{" "}
+                                                    <CardContent className="p-4">
+                                                        <div className="flex flex-col gap-2">
+                                                            <div className="flex justify-between items-start">
+                                                                <h4 className="font-semibold text-lg">{session.category}</h4>
+                                                                <span className="font-bold text-red-600">
+                                                                    &#8377; {session.per_session_price}
+                                                                </span>
+                                                            </div>
+
+                                                            <div className="space-y-1 text-sm text-gray-600">
+                                                                <div className="flex items-center">
+                                                                    <Clock className="w-4 h-4 mr-2 text-gray-400" />
                                                                     {availability.start_time} - {availability.end_time}
                                                                 </div>
-                                                                <div className="text-gray-500 flex items-center">
-                                                                    <Users className="w-3 h-3 mr-1" />{" "}
-                                                                    {session.max_capacity} max
+                                                                <div className="flex items-center">
+                                                                    <Users className="w-4 h-4 mr-2 text-gray-400" />
+                                                                    {session.max_capacity} max capacity
                                                                 </div>
-                                                            </div>
-                                                            <div className="font-semibold">
-                                                                &#8377; {session.per_session_price}
                                                             </div>
                                                         </div>
                                                     </CardContent>
-                                                    <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1">
+                                                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1 bg-white/90 rounded-md p-1 shadow-sm">
                                                         <Dialog>
                                                             <DialogTrigger asChild>
-                                                                <Button variant="ghost" size="icon" onClick={() => setEditAvailabilityData(availability)} >
+                                                                <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-blue-600" onClick={() => setEditAvailabilityData(availability)} >
                                                                     <Pencil className="h-4 w-4" />
                                                                 </Button>
                                                             </DialogTrigger>
@@ -690,15 +688,15 @@ const VendorSessionManagement = () => {
 
                                                         <AlertDialog>
                                                             <AlertDialogTrigger asChild>
-                                                                <Button variant="ghost" size="icon">
+                                                                <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-red-600">
                                                                     <Trash className="w-4 h-4" />
                                                                 </Button>
                                                             </AlertDialogTrigger>
                                                             <AlertDialogContent>
                                                                 <AlertDialogHeader>
-                                                                    <AlertDialogTitle>Are you sure you want to delete this session?</AlertDialogTitle>
+                                                                    <AlertDialogTitle>Delete Availability?</AlertDialogTitle>
                                                                     <AlertDialogDescription>
-                                                                        This action cannot be undone. This will permanently delete the session.
+                                                                        This will permanently remove this time slot from the schedule.
                                                                     </AlertDialogDescription>
                                                                 </AlertDialogHeader>
                                                                 <AlertDialogFooter>
@@ -714,7 +712,10 @@ const VendorSessionManagement = () => {
                                             );
                                         })
                                 ) : (
-                                    <p>No availability available</p>
+                                    <div className="col-span-full flex flex-col items-center justify-center p-8 text-gray-500 bg-gray-50 rounded-lg border border-dashed">
+                                        <Calendar className="w-12 h-12 mb-2 opacity-20" />
+                                        <p>No sessions scheduled for this day</p>
+                                    </div>
                                 )}
                             </div>
                         </div>

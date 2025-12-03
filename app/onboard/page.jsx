@@ -30,6 +30,35 @@ export default function Onboard() {
         } else if (user && user.phoneNumber) {
             setMobileNumuber(user.phoneNumber);
         }
+
+        // Check if user has already completed onboarding
+        if (user && !loading) {
+            const checkStatus = async () => {
+                try {
+                    const token = await user.getIdToken();
+                    const response = await fetch('/api/auth/status', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        const status = await response.json();
+                        // If onboarding is complete, redirect to next step
+                        if (status.onboardingCompleted) {
+                            if (status.hasFitnessCenter) {
+                                router.push('/vendor/dashboard');
+                            } else {
+                                router.push('/createCentre');
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error checking status:", error);
+                }
+            };
+            checkStatus();
+        }
     }, [user, loading, router]);
 
     useEffect(() => {
@@ -93,7 +122,9 @@ export default function Onboard() {
                 setProcessing(false);
                 return;
             }
-            router.push("/createCentre");
+
+            // Redirect to the next step from API response
+            router.push(data.nextStep || "/createCentre");
         } catch (err) {
             setError("Failed to connect to the server!");
             setProcessing(false);

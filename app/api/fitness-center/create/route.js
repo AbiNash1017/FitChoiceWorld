@@ -46,7 +46,11 @@ export async function POST(request) {
 
         await newFitnessCenter.save();
 
-        return NextResponse.json({ message: 'OK', fitnessCenter: newFitnessCenter });
+        return NextResponse.json({
+            message: 'OK',
+            fitnessCenter: newFitnessCenter,
+            nextStep: '/vendor/dashboard'
+        });
     } catch (error) {
         console.error('Error creating fitness center:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

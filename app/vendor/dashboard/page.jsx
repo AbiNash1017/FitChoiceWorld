@@ -25,7 +25,7 @@ const VendorDashboard = () => {
 
     const tabs = [
         { id: 'overview', label: 'Overview', icon: Home },
-        { id: 'sessions', label: 'Session Management', icon: Calendar },
+        { id: 'facility_sessions', label: 'Facility Session Management', icon: Calendar },
         { id: 'bookings', label: 'Booking Management', icon: Users },
         { id: 'coupon_banner', label: 'Coupons and Banners', icon: Tag },
         { id: 'analytics', label: 'Analytics', icon: PieChart },
@@ -39,6 +39,37 @@ const VendorDashboard = () => {
         if (!loading && !user) {
             router.push('/login')
         }
+
+        // Check if user has completed onboarding and created a fitness center
+        if (user && !loading) {
+            const checkStatus = async () => {
+                try {
+                    const token = await user.getIdToken();
+                    const response = await fetch('/api/auth/status', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        const status = await response.json();
+
+                        // If onboarding is not complete, redirect to onboard
+                        if (!status.onboardingCompleted) {
+                            router.push('/onboard');
+                        }
+                        // If user doesn't have a fitness center, redirect to createCentre
+                        else if (!status.hasFitnessCenter) {
+                            router.push('/createCentre');
+                        }
+                        // Otherwise, user is allowed to access dashboard
+                    }
+                } catch (error) {
+                    console.error("Error checking status:", error);
+                }
+            };
+            checkStatus();
+        }
     }, [user, loading, router])
 
     return (
@@ -50,7 +81,7 @@ const VendorDashboard = () => {
                     <Tabs value={activeTab} onValueChange={setActiveTab}>
                         <div>
                             <TabsContent value="overview"><VendorOverview /></TabsContent>
-                            <TabsContent value="sessions"><VendorSessionManagement /></TabsContent>
+                            <TabsContent value="facility_sessions"><VendorSessionManagement /></TabsContent>
                             <TabsContent value="bookings"><VendorBookingManagement /></TabsContent>
                             <TabsContent value="coupon_banner"><VendorCouponsAndBanners /></TabsContent>
                             <TabsContent value="analytics"><VendorAnalytics /></TabsContent>
