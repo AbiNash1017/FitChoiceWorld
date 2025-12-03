@@ -38,3 +38,66 @@ export async function POST(request) {
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }
+
+export async function PATCH(request) {
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const token = authHeader.split('Bearer ')[1];
+
+    try {
+        const decodedToken = await adminAuth.verifyIdToken(token);
+        const uid = decodedToken.uid;
+        const body = await request.json();
+
+        console.log('=== USER UPDATE DEBUG ===');
+        console.log('UID:', uid);
+        console.log('Request body:', body);
+
+        await dbConnect();
+
+        const updateData = {};
+
+        // Only update fields that are provided
+        if (body.email !== undefined) updateData.email = body.email;
+        if (body.first_name !== undefined) updateData.first_name = body.first_name;
+        if (body.last_name !== undefined) updateData.last_name = body.last_name;
+        if (body.phone_number !== undefined) updateData.phone_number = body.phone_number;
+        if (body.bio !== undefined) updateData.bio = body.bio;
+
+        console.log('Update data prepared:', updateData);
+
+        // First, find the user to see what exists
+        const existingUser = await User.findOne({ uid });
+        console.log('Existing user before update:', existingUser ? {
+            uid: existingUser.uid,
+            email: existingUser.email,
+            first_name: existingUser.first_name
+        } : 'NOT FOUND');
+
+        const user = await User.findOneAndUpdate(
+            { uid },
+            { $set: updateData },
+            { new: true, runValidators: true, strict: false }
+        );
+
+        console.log('User after update:', user ? {
+            uid: user.uid,
+            email: user.email,
+            first_name: user.first_name
+        } : 'NOT FOUND');
+
+        if (!user) {
+            console.log('ERROR: User not found after update');
+            return NextResponse.json({ error: 'User not found' }, { status: 404 });
+        }
+
+        console.log('=== UPDATE SUCCESSFUL ===');
+        return NextResponse.json({ message: 'User updated successfully', user });
+    } catch (error) {
+        console.error('Error updating user:', error);
+        return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    }
+}

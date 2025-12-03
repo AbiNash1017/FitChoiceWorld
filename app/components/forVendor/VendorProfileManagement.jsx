@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader, Upload, X } from 'lucide-react';
+import { Loader, Upload, X, User, Building2, Mail, Phone, Calendar } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
 import { storage } from '@/firebaseConfig';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
@@ -34,7 +34,20 @@ const VendorProfileManagement = () => {
         city: '',
         state: '',
         pincode: ''
-    })
+    });
+    const [userProfile, setUserProfile] = useState({
+        first_name: '',
+        last_name: '',
+        email: '',
+        phone_number: '',
+        bio: '',
+        profile_image_url: '',
+        user_since: '',
+        karma_points: 0,
+        ai_credits: 0
+    });
+    const [isEditingEmail, setIsEditingEmail] = useState(false);
+    const [editedEmail, setEditedEmail] = useState('');
     const [pendingHeaderImage, setPendingHeaderImage] = useState(null);
     const [pendingFitnessImages, setPendingFitnessImages] = useState([]);
     const fileInputRef = useRef(null);
@@ -42,10 +55,10 @@ const VendorProfileManagement = () => {
     const { user, loading } = useAuth();
     const router = useRouter();
 
-    const fetchGymDetails = async () => {
+    const fetchVendorProfile = async () => {
         if (!user) return;
         const token = await user.getIdToken();
-        const response = await fetch(`/api/fitness-center/my`, {
+        const response = await fetch(`/api/vendor/profile`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -53,14 +66,44 @@ const VendorProfileManagement = () => {
             },
         });
         const data = await response.json();
-        if (response.ok && data.data) {
-            const locationDetails = data.data.Location || {}
-            const fetchedDetails = data.data;
-            console.log("fetcheddeets", fetchedDetails)
-            console.log("locationdeets", locationDetails)
-            setGymDetails(fetchedDetails);
-            setLocation(locationDetails)
-            console.log("location", location)
+        if (response.ok && data) {
+            // Set user profile
+            if (data.userProfile) {
+                setUserProfile({
+                    first_name: data.userProfile.first_name || '',
+                    last_name: data.userProfile.last_name || '',
+                    email: user.email || '',
+                    phone_number: data.userProfile.phone_number || '',
+                    bio: data.userProfile.bio || '',
+                    profile_image_url: data.userProfile.profile_image_url || '',
+                    user_since: data.userProfile.user_since || '',
+                    karma_points: data.userProfile.karma_points || 0,
+                    ai_credits: data.userProfile.ai_credits || 0
+                });
+            }
+
+            // Set fitness center details
+            if (data.fitnessCenter) {
+                setGymDetails({
+                    id: data.fitnessCenter._id || '',
+                    centre_name: data.fitnessCenter.name || '',
+                    centre_description: data.fitnessCenter.description || '',
+                    rating_count: data.fitnessCenter.total_reviews || 0,
+                    rating: data.fitnessCenter.rating || 0,
+                    header_image: data.fitnessCenter.image_urls?.[0] || '',
+                    owner_id: data.fitnessCenter.owner_id || '',
+                    centre_images: data.fitnessCenter.image_urls || [],
+                    google_maps_link: '', // Not in schema
+                    contact_no: data.fitnessCenter.phone_number || ''
+                });
+
+                setLocation({
+                    address: data.fitnessCenter.address || '',
+                    city: data.fitnessCenter.city || '',
+                    state: data.fitnessCenter.state || '',
+                    pincode: data.fitnessCenter.postal_code || ''
+                });
+            }
         }
     };
 
@@ -68,7 +111,7 @@ const VendorProfileManagement = () => {
         if (!loading && !user) {
             router.push('/login')
         } else if (user) {
-            fetchGymDetails();
+            fetchVendorProfile();
         }
     }, [user, loading, router]);
 
@@ -110,9 +153,9 @@ const VendorProfileManagement = () => {
             setPendingFitnessImages((prevImages) => prevImages.filter((_, i) => i !== index));
         } else if (source === 'header') {
             if (pendingHeaderImage) {
-                setPendingHeaderImage(null); // Clear pending image
+                setPendingHeaderImage(null);
             } else if (gymDetails.header_image) {
-                setGymDetails((prev) => ({ ...prev, header_image: '' })); // Clear existing header image
+                setGymDetails((prev) => ({ ...prev, header_image: '' }));
             }
         } else if (source === 'centre') {
             setGymDetails((prevDetails) => ({
@@ -122,7 +165,6 @@ const VendorProfileManagement = () => {
         }
     };
 
-    //upload to firebase bucket
     const uploadImageToFirebase = async (file, pathPrefix) => {
         try {
             const storageRef = ref(storage, `${pathPrefix}/${Date.now()}-${file.name}`);
@@ -135,8 +177,6 @@ const VendorProfileManagement = () => {
         }
     };
 
-
-    //updating image
     const handleUpdate = async (e) => {
         e.preventDefault();
 
@@ -145,32 +185,27 @@ const VendorProfileManagement = () => {
             const token = await user.getIdToken();
             let uploadedHeaderImage = null;
             let uploadedFitnessCentreImages = [];
-            console.log("inside update", pendingHeaderImage)
-            // If a new header image is pending, upload it
+
             if (pendingHeaderImage) {
-                console.log("inside if pendingHeaderImage")
                 uploadedHeaderImage = await uploadImageToFirebase(pendingHeaderImage, 'fitness-centre-images/header');
             }
 
-            if (pendingFitnessImages) {
+            if (pendingFitnessImages.length > 0) {
                 uploadedFitnessCentreImages = await Promise.all(pendingFitnessImages.map((img) => {
                     return uploadImageToFirebase(img, 'fitness-centre-images');
                 }))
             }
 
-            // Update details with the new or cleared header image
             const updatedDetails = {
                 ...gymDetails,
                 address: location.address,
                 pincode: location.pincode,
                 header_image: pendingHeaderImage ? uploadedHeaderImage : (gymDetails.header_image || null),
                 centre_images: [
-                    ...gymDetails.centre_images, // Keep existing images
-                    ...uploadedFitnessCentreImages.filter((img) => img !== null) // Add only successfully uploaded images
+                    ...gymDetails.centre_images,
+                    ...uploadedFitnessCentreImages.filter((img) => img !== null)
                 ],
             };
-
-            console.log("updatedDetails", updatedDetails.header_image)
 
             const response = await fetch(`/api/fitness-center/update`, {
                 method: 'PATCH',
@@ -182,205 +217,372 @@ const VendorProfileManagement = () => {
             });
 
             if (!response.ok) throw new Error('Failed to update gym details')
-            else alert("update success");
+            else alert("Update successful");
 
-            fetchGymDetails();
-            setPendingHeaderImage(null); // Clear local state for header image
-            setPendingFitnessImages([]); // Clear pending fitness images
+            fetchVendorProfile();
+            setPendingHeaderImage(null);
+            setPendingFitnessImages([]);
         } catch (error) {
             console.error('Error updating gym details:', error);
         }
     };
 
+    const handleUpdateUserProfile = async () => {
+        try {
+            if (!user) return;
+            const token = await user.getIdToken();
+
+            const response = await fetch('/api/user/update', {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ email: editedEmail })
+            });
+
+            if (!response.ok) throw new Error('Failed to update user profile');
+
+            alert('Email updated successfully');
+            setUserProfile(prev => ({ ...prev, email: editedEmail }));
+            setIsEditingEmail(false);
+        } catch (error) {
+            console.error('Error updating user profile:', error);
+            alert('Failed to update email');
+        }
+    };
+
+    const formatDate = (dateString) => {
+        if (!dateString) return 'N/A';
+        return new Date(dateString).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    };
 
     return (
-        <div className="space-y-3">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Profile</CardTitle>
+        <div className="space-y-6">
+            {/* User Profile Card */}
+            <Card className="border-gray-200">
+                <CardHeader className="border-b bg-gray-50/50">
+                    <CardTitle className="flex items-center gap-2 text-xl">
+                        <User className="w-5 h-5 text-red-600" />
+                        User Profile
+                    </CardTitle>
                 </CardHeader>
-                {
-                    gymDetails ?
-                        <CardContent>
-                            <form className="space-y-3" onSubmit={handleUpdate}>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <Label htmlFor="name">
-                                            Fitness Centre Name <span className="text-red-500 text-lg">*</span>
-                                        </Label>
-                                        <Input
-                                            id="name"
-                                            name="centre_name"
-                                            type="text"
-                                            required
-                                            value={gymDetails.centre_name}
-                                            onChange={handleInputChange}
+                {userProfile ? (
+                    <CardContent className="pt-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Profile Image */}
+                            <div className="md:col-span-2 flex items-center gap-6">
+                                <div className="relative">
+                                    {userProfile.profile_image_url ? (
+                                        <img
+                                            src={userProfile.profile_image_url}
+                                            alt="Profile"
+                                            className="w-24 h-24 rounded-full object-cover border-2 border-gray-200"
                                         />
-                                    </div>
-                                    <div>
-                                        <Label htmlFor="contact_no">
-                                            Contact Number <span className="text-red-500 text-lg">*</span>
-                                        </Label>
+                                    ) : (
+                                        <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center border-2 border-gray-200">
+                                            <User className="w-12 h-12 text-gray-400" />
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="text-2xl font-semibold text-gray-900">
+                                        {userProfile.first_name} {userProfile.last_name}
+                                    </h3>
+                                    <p className="text-sm text-gray-500 mt-1">Fitness Center Owner</p>
+                                </div>
+                            </div>
+
+                            {/* Contact Information */}
+                            <div className="space-y-1">
+                                <Label className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                                    <Mail className="w-4 h-4" />
+                                    Email
+                                </Label>
+                                {isEditingEmail ? (
+                                    <div className="flex gap-2">
                                         <Input
-                                            id="contact_no"
-                                            name="contact_no"
-                                            type="text"
-                                            required
-                                            value={gymDetails.contact_no || ''}
-                                            onChange={handleInputChange}
+                                            type="email"
+                                            value={editedEmail}
+                                            onChange={(e) => setEditedEmail(e.target.value)}
+                                            className="flex-1"
+                                            placeholder="Enter new email"
                                         />
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            onClick={handleUpdateUserProfile}
+                                            className="bg-red-600 hover:bg-red-700"
+                                        >
+                                            Save
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => {
+                                                setIsEditingEmail(false);
+                                                setEditedEmail(userProfile.email);
+                                            }}
+                                        >
+                                            Cancel
+                                        </Button>
                                     </div>
-                                </div>
-                                <div>
-                                    <Label htmlFor="description">
-                                        Description <span className="text-red-500 text-lg">*</span>
-                                    </Label>
-                                    <Textarea
-                                        id="centre_description"
-                                        name="centre_description"
-                                        required
-                                        value={gymDetails.centre_description || ''}
-                                        onChange={handleInputChange}
-                                        maxLength={500}
-                                    />
-                                    <p className="text-sm text-gray-500 mt-1">
-                                        {gymDetails.centre_description?.length}/500 characters
-                                    </p>
-                                </div>
+                                ) : (
+                                    <div className="flex items-center gap-2">
+                                        <p className="text-gray-900 flex-1">{userProfile.email || 'Not provided'}</p>
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => {
+                                                setIsEditingEmail(true);
+                                                setEditedEmail(userProfile.email);
+                                            }}
+                                            className="text-xs"
+                                        >
+                                            Edit
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
 
-                                <div>
-                                    <Label htmlFor="address">
-                                        Address <span className="text-red-500 text-lg">*</span>
-                                    </Label>
-                                    <Textarea
-                                        id="address"
-                                        name="address"
-                                        required
-                                        value={location.address || ''}
-                                        onChange={handleAddressChange}
-                                        maxLength={500}
-                                    />
-                                    <p className="text-sm text-gray-500 mt-1">
-                                        {location.address?.length}/500 characters
-                                    </p>
-                                </div>
+                            <div className="space-y-1">
+                                <Label className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                                    <Phone className="w-4 h-4" />
+                                    Phone Number
+                                </Label>
+                                <p className="text-gray-900">{userProfile.phone_number || 'Not provided'}</p>
+                            </div>
 
+                            {/* Member Since */}
+                            <div className="space-y-1">
+                                <Label className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                                    <Calendar className="w-4 h-4" />
+                                    Member Since
+                                </Label>
+                                <p className="text-gray-900">{formatDate(userProfile.user_since)}</p>
+                            </div>
+
+                            {/* Bio */}
+                            {userProfile.bio && (
+                                <div className="md:col-span-2 space-y-1">
+                                    <Label className="text-sm font-medium text-gray-600">Bio</Label>
+                                    <p className="text-gray-900">{userProfile.bio}</p>
+                                </div>
+                            )}
+                        </div>
+                    </CardContent>
+                ) : (
+                    <CardContent className="flex justify-center items-center py-8">
+                        <Loader className="animate-spin text-gray-400" />
+                    </CardContent>
+                )}
+            </Card>
+
+            {/* Fitness Center Profile Card */}
+            <Card className="border-gray-200">
+                <CardHeader className="border-b bg-gray-50/50">
+                    <CardTitle className="flex items-center gap-2 text-xl">
+                        <Building2 className="w-5 h-5 text-red-600" />
+                        Fitness Center Profile
+                    </CardTitle>
+                </CardHeader>
+                {gymDetails ? (
+                    <CardContent className="pt-6">
+                        <form className="space-y-6" onSubmit={handleUpdate}>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <Label htmlFor="pincode">
-                                        Pincode <span className="text-red-500 text-lg">*</span>
+                                    <Label htmlFor="name">
+                                        Fitness Centre Name <span className="text-red-500">*</span>
                                     </Label>
                                     <Input
-                                        id="pincode"
-                                        name="pincode"
-                                        type="number"
-                                        maxLength={6}
-                                        required
-                                        value={location.pincode || ''}
-                                        onChange={handlePincodeChange}
-                                    />
-                                </div>
-
-                                <div>
-                                    <Label htmlFor="google_maps_link">
-                                        Location (Google Maps Link) <span className="text-red-500 text-lg">*</span>
-                                    </Label>
-                                    <Input
-                                        id="google_maps_link"
-                                        name="google_maps_link"
+                                        id="name"
+                                        name="centre_name"
                                         type="text"
                                         required
-                                        value={gymDetails.google_maps_link || ''}
+                                        value={gymDetails.centre_name}
                                         onChange={handleInputChange}
+                                        className="mt-1.5"
                                     />
                                 </div>
-
                                 <div>
-                                    <Label>Header Image (1 image only) <span className='text-red-500 text-lg'>*</span></Label>
-                                    <div className="mt-2 flex">
-                                        {pendingHeaderImage || gymDetails.header_image ? (
-                                            <div className="relative">
-                                                <img
-                                                    src={pendingHeaderImage ? URL.createObjectURL(pendingHeaderImage) : gymDetails.header_image}
-                                                    alt="Header Preview"
-                                                    className="w-24 h-24 object-cover rounded"
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleRemovePendingImage('header')}
-                                                    className="absolute top-0 right-0 bg-red-600 text-white rounded-full p-1"
-                                                >
-                                                    <X size={16} />
-                                                </button>
-                                            </div>
-                                        ) : (
+                                    <Label htmlFor="contact_no">
+                                        Contact Number <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Input
+                                        id="contact_no"
+                                        name="contact_no"
+                                        type="text"
+                                        required
+                                        value={gymDetails.contact_no || ''}
+                                        onChange={handleInputChange}
+                                        className="mt-1.5"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <Label htmlFor="description">
+                                    Description <span className="text-red-500">*</span>
+                                </Label>
+                                <Textarea
+                                    id="centre_description"
+                                    name="centre_description"
+                                    required
+                                    value={gymDetails.centre_description || ''}
+                                    onChange={handleInputChange}
+                                    maxLength={500}
+                                    className="mt-1.5 min-h-[100px]"
+                                />
+                                <p className="text-sm text-gray-500 mt-1.5">
+                                    {gymDetails.centre_description?.length}/500 characters
+                                </p>
+                            </div>
+
+                            <div>
+                                <Label htmlFor="address">
+                                    Address <span className="text-red-500">*</span>
+                                </Label>
+                                <Textarea
+                                    id="address"
+                                    name="address"
+                                    required
+                                    value={location.address || ''}
+                                    onChange={handleAddressChange}
+                                    maxLength={500}
+                                    className="mt-1.5 min-h-[80px]"
+                                />
+                                <p className="text-sm text-gray-500 mt-1.5">
+                                    {location.address?.length}/500 characters
+                                </p>
+                            </div>
+
+                            <div>
+                                <Label htmlFor="pincode">
+                                    Pincode <span className="text-red-500">*</span>
+                                </Label>
+                                <Input
+                                    id="pincode"
+                                    name="pincode"
+                                    type="number"
+                                    maxLength={6}
+                                    required
+                                    value={location.pincode || ''}
+                                    onChange={handlePincodeChange}
+                                    className="mt-1.5"
+                                />
+                            </div>
+
+                            <div>
+                                <Label htmlFor="google_maps_link">
+                                    Location (Google Maps Link) <span className="text-red-500">*</span>
+                                </Label>
+                                <Input
+                                    id="google_maps_link"
+                                    name="google_maps_link"
+                                    type="text"
+                                    required
+                                    value={gymDetails.google_maps_link || ''}
+                                    onChange={handleInputChange}
+                                    className="mt-1.5"
+                                />
+                            </div>
+
+                            <div>
+                                <Label>Header Image (1 image only) <span className='text-red-500'>*</span></Label>
+                                <div className="mt-3 flex gap-3">
+                                    {pendingHeaderImage || gymDetails.header_image ? (
+                                        <div className="relative group">
+                                            <img
+                                                src={pendingHeaderImage ? URL.createObjectURL(pendingHeaderImage) : gymDetails.header_image}
+                                                alt="Header Preview"
+                                                className="w-32 h-32 object-cover rounded-lg border-2 border-gray-200"
+                                            />
                                             <button
                                                 type="button"
-                                                onClick={() => headerFileInputRef.current?.click()}
-                                                className="w-24 h-24 flex items-center justify-center border-2 border-dashed border-gray-300 rounded"
+                                                onClick={() => handleRemovePendingImage('header')}
+                                                className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-red-700"
                                             >
-                                                <Upload className="text-gray-400" />
+                                                <X size={14} />
                                             </button>
-                                        )}
-                                    </div>
-                                    <input
-                                        type="file"
-                                        ref={headerFileInputRef}
-                                        onChange={handleHeaderImageSelection}
-                                        accept="image/*"
-                                        className="hidden"
-                                    />
+                                        </div>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            onClick={() => headerFileInputRef.current?.click()}
+                                            className="w-32 h-32 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg hover:border-red-500 hover:bg-red-50 transition-colors"
+                                        >
+                                            <Upload className="text-gray-400 mb-1" size={24} />
+                                            <span className="text-xs text-gray-500">Upload</span>
+                                        </button>
+                                    )}
                                 </div>
+                                <input
+                                    type="file"
+                                    ref={headerFileInputRef}
+                                    onChange={handleHeaderImageSelection}
+                                    accept="image/*"
+                                    className="hidden"
+                                />
+                            </div>
 
-
-                                <div>
-                                    <Label>Fitness Centre Images (Up to 5 images) <span className='text-red-500 text-lg'>*</span></Label>
-                                    <div className="mt-2 flex flex-wrap gap-4">
-                                        {[...gymDetails.centre_images, ...pendingFitnessImages.map((file) => URL.createObjectURL(file))].map((image, index) => (
-                                            <div key={index} className="relative">
-                                                <img
-                                                    src={image}
-                                                    alt={`Fitness centre preview ${index + 1}`}
-                                                    className="w-24 h-24 object-cover rounded"
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        handleRemovePendingImage(index < gymDetails.centre_images.length ? 'centre' : 'fitness', index)
-                                                    }
-                                                    className="absolute top-0 right-0 bg-red-600 text-white rounded-full p-1"
-                                                >
-                                                    <X size={16} />
-                                                </button>
-                                            </div>
-                                        ))}
+                            <div>
+                                <Label>Fitness Centre Images (Up to 5 images) <span className='text-red-500'>*</span></Label>
+                                <div className="mt-3 flex flex-wrap gap-3">
+                                    {[...gymDetails.centre_images, ...pendingFitnessImages.map((file) => URL.createObjectURL(file))].map((image, index) => (
+                                        <div key={index} className="relative group">
+                                            <img
+                                                src={image}
+                                                alt={`Fitness centre preview ${index + 1}`}
+                                                className="w-32 h-32 object-cover rounded-lg border-2 border-gray-200"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    handleRemovePendingImage(index < gymDetails.centre_images.length ? 'centre' : 'fitness', index)
+                                                }
+                                                className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-red-700"
+                                            >
+                                                <X size={14} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                    {[...gymDetails.centre_images, ...pendingFitnessImages].length < 5 && (
                                         <button
                                             type="button"
                                             onClick={() => fileInputRef.current?.click()}
-                                            className="w-24 h-24 flex items-center justify-center border-2 border-dashed border-gray-300 rounded"
+                                            className="w-32 h-32 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg hover:border-red-500 hover:bg-red-50 transition-colors"
                                         >
-                                            <Upload className="text-gray-400" />
+                                            <Upload className="text-gray-400 mb-1" size={24} />
+                                            <span className="text-xs text-gray-500">Upload</span>
                                         </button>
-                                    </div>
-                                    <input
-                                        type="file"
-                                        ref={fileInputRef}
-                                        onChange={handleFitnessImagesSelection}
-                                        accept="image/*"
-                                        className="hidden"
-                                        multiple
-                                    />
+                                    )}
                                 </div>
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    onChange={handleFitnessImagesSelection}
+                                    accept="image/*"
+                                    className="hidden"
+                                    multiple
+                                />
+                            </div>
 
-                                <Button type="submit" className="w-auto mt-8 bg-red-600 hover:bg-red-700">
-                                    Update Profile
-                                </Button>
-                            </form>
-                        </CardContent>
-                        :
-                        <>
-                            <div className='flex flex-col justify-center items-center animate-spin'><Loader /></div>
-                        </>
-                }
+                            <Button type="submit" className="w-full md:w-auto bg-red-600 hover:bg-red-700 transition-colors">
+                                Update Fitness Center Profile
+                            </Button>
+                        </form>
+                    </CardContent>
+                ) : (
+                    <CardContent className="flex justify-center items-center py-8">
+                        <Loader className="animate-spin text-gray-400" />
+                    </CardContent>
+                )}
             </Card>
         </div>
     );
