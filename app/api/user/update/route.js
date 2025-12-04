@@ -66,6 +66,7 @@ export async function PATCH(request) {
         if (body.last_name !== undefined) updateData.last_name = body.last_name;
         if (body.phone_number !== undefined) updateData.phone_number = body.phone_number;
         if (body.bio !== undefined) updateData.bio = body.bio;
+        if (body.profile_image_url !== undefined) updateData.profile_image_url = body.profile_image_url;
 
         console.log('Update data prepared:', updateData);
 
@@ -94,6 +95,26 @@ export async function PATCH(request) {
             return NextResponse.json({ error: 'User not found' }, { status: 404 });
         }
 
+        // ALSO update center_admin_metadata if it exists
+        const CenterAdminMetadata = (await import('@/lib/models/CenterAdminMetadata')).default;
+        const adminUpdateData = {};
+
+        if (body.email !== undefined) adminUpdateData.admin_email = body.email;
+        if (body.first_name !== undefined) adminUpdateData.first_name = body.first_name;
+        if (body.last_name !== undefined) adminUpdateData.last_name = body.last_name;
+        if (body.phone_number !== undefined) adminUpdateData.admin_phone_number = body.phone_number;
+        if (body.profile_image_url !== undefined) adminUpdateData.profile_image_url = body.profile_image_url;
+        if (body.bio !== undefined) adminUpdateData.bio = body.bio;
+
+        if (Object.keys(adminUpdateData).length > 0) {
+            await CenterAdminMetadata.findOneAndUpdate(
+                { uid },
+                { $set: adminUpdateData },
+                { new: true }
+            );
+            console.log('Also updated center_admin_metadata');
+        }
+
         console.log('=== UPDATE SUCCESSFUL ===');
         return NextResponse.json({ message: 'User updated successfully', user });
     } catch (error) {
@@ -101,3 +122,4 @@ export async function PATCH(request) {
         return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
     }
 }
+

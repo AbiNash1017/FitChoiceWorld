@@ -18,7 +18,7 @@ export async function GET(request) {
 
         await dbConnect();
 
-        // Fetch user profile
+        // Fetch user profile (from user_metadata as before)
         const userProfile = await User.findOne({ uid });
 
         // Fetch fitness center
@@ -28,7 +28,7 @@ export async function GET(request) {
             return NextResponse.json({ error: 'User profile not found' }, { status: 404 });
         }
 
-        // Prepare response data
+        // Prepare response data (same as before)
         const responseData = {
             userProfile: userProfile.toObject(),
             fitnessCenter: fitnessCenter ? fitnessCenter.toObject() : null
