@@ -50,11 +50,8 @@ const VendorProfileManagement = () => {
     const [editedEmail, setEditedEmail] = useState('');
     const [pendingHeaderImage, setPendingHeaderImage] = useState(null);
     const [pendingFitnessImages, setPendingFitnessImages] = useState([]);
-    const [pendingProfileImage, setPendingProfileImage] = useState(null);
-    const [uploadingProfileImage, setUploadingProfileImage] = useState(false);
     const fileInputRef = useRef(null);
     const headerFileInputRef = useRef(null);
-    const profileImageInputRef = useRef(null);
     const { user, loading } = useAuth();
     const router = useRouter();
 
@@ -255,75 +252,6 @@ const VendorProfileManagement = () => {
         }
     };
 
-    const handleProfileImageSelection = (e) => {
-        const file = e.target.files ? e.target.files[0] : null;
-        if (file) {
-            // Validate file type
-            const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-            if (!validTypes.includes(file.type)) {
-                alert('Invalid file type. Only JPEG, PNG, and WebP images are allowed.');
-                return;
-            }
-            // Validate file size (max 5MB)
-            const maxSize = 5 * 1024 * 1024;
-            if (file.size > maxSize) {
-                alert('File size exceeds 5MB limit.');
-                return;
-            }
-            setPendingProfileImage(file);
-        }
-    };
-
-    const handleUploadProfileImage = async () => {
-        if (!pendingProfileImage || !user) return;
-
-        setUploadingProfileImage(true);
-        try {
-            const token = await user.getIdToken();
-
-            // Upload to Firebase Storage
-            const timestamp = Date.now();
-            const fileExtension = pendingProfileImage.name.split('.').pop();
-            const fileName = `profile-${user.uid}-${timestamp}.${fileExtension}`;
-            const storageRef = ref(storage, `profile-images/user-profiles/${fileName}`);
-
-            const snapshot = await uploadBytes(storageRef, pendingProfileImage, {
-                contentType: pendingProfileImage.type,
-                customMetadata: {
-                    uploadedBy: user.uid,
-                    uploadedAt: new Date().toISOString(),
-                }
-            });
-
-            const downloadURL = await getDownloadURL(snapshot.ref);
-
-            // Update user profile with new image URL
-            const response = await fetch('/api/user/update', {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ profile_image_url: downloadURL })
-            });
-
-            if (!response.ok) throw new Error('Failed to update profile image');
-
-            alert('Profile image updated successfully!');
-            setUserProfile(prev => ({ ...prev, profile_image_url: downloadURL }));
-            setPendingProfileImage(null);
-        } catch (error) {
-            console.error('Error uploading profile image:', error);
-            alert('Failed to upload profile image');
-        } finally {
-            setUploadingProfileImage(false);
-        }
-    };
-
-    const handleRemoveProfileImage = () => {
-        setPendingProfileImage(null);
-    };
-
     const formatDate = (dateString) => {
         if (!dateString) return 'N/A';
         return new Date(dateString).toLocaleDateString('en-US', {
@@ -367,79 +295,6 @@ const VendorProfileManagement = () => {
                                     </h3>
                                     <p className="text-sm text-gray-500 mt-1">Fitness Center Owner</p>
                                 </div>
-                            </div>
-
-                            {/* Profile Image Upload */}
-                            <div className="md:col-span-2 space-y-3">
-                                <Label className="text-sm font-medium text-gray-600">Update Profile Picture</Label>
-                                {pendingProfileImage ? (
-                                    <div className="flex items-center gap-3">
-                                        <div className="relative">
-                                            <img
-                                                src={URL.createObjectURL(pendingProfileImage)}
-                                                alt="Preview"
-                                                className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={handleRemoveProfileImage}
-                                                className="absolute -top-1 -right-1 bg-red-600 text-white rounded-full p-1 hover:bg-red-700 shadow-md"
-                                            >
-                                                <X size={12} />
-                                            </button>
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <Button
-                                                type="button"
-                                                size="sm"
-                                                onClick={handleUploadProfileImage}
-                                                disabled={uploadingProfileImage}
-                                                className="bg-red-600 hover:bg-red-700"
-                                            >
-                                                {uploadingProfileImage ? (
-                                                    <>
-                                                        <Loader className="animate-spin mr-2" size={14} />
-                                                        Uploading...
-                                                    </>
-                                                ) : (
-                                                    'Upload Image'
-                                                )}
-                                            </Button>
-                                            <Button
-                                                type="button"
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={handleRemoveProfileImage}
-                                                disabled={uploadingProfileImage}
-                                            >
-                                                Cancel
-                                            </Button>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div>
-                                        <Button
-                                            type="button"
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={() => profileImageInputRef.current?.click()}
-                                            className="flex items-center gap-2"
-                                        >
-                                            <Upload size={16} />
-                                            Choose Image
-                                        </Button>
-                                        <p className="text-xs text-gray-500 mt-2">
-                                            Max 5MB • JPEG, PNG, or WebP
-                                        </p>
-                                    </div>
-                                )}
-                                <input
-                                    type="file"
-                                    ref={profileImageInputRef}
-                                    onChange={handleProfileImageSelection}
-                                    accept="image/jpeg,image/jpg,image/png,image/webp"
-                                    className="hidden"
-                                />
                             </div>
 
                             {/* Contact Information */}
@@ -512,7 +367,6 @@ const VendorProfileManagement = () => {
                                 </Label>
                                 <p className="text-gray-900">{formatDate(userProfile.user_since)}</p>
                             </div>
-
 
                             {/* Bio */}
                             {userProfile.bio && (
