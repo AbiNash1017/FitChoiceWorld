@@ -1,275 +1,196 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Clock, Edit, Trash, Users, ChevronLeft, ChevronRight, Plus, Pencil } from 'lucide-react'
+import { useState } from 'react'
+import { Plus, X, Trash2, Clock } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
 import { Calendar } from "@/components/ui/calendar"
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, } from "@/components/ui/dialog"
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger, } from "@/components/ui/alert-dialog"
 import { useFitnessCentre } from '@/app/context/FitnessCentreContext'
-import { useRouter } from 'next/navigation'
 import { useAuth } from '@/app/context/AuthContext'
+import { format } from 'date-fns'
 
 const VendorSessionManagement = () => {
-    const [showEditModal, setShowEditModal] = useState(false)
-    const [showDeleteModal, setShowDeleteModal] = useState(false)
     const { fitnessCentreId } = useFitnessCentre()
-    const [date, setDate] = useState(new Date())
-    const [sessions, setSessions] = useState([])
-    const [availabilities, setAvailabilities] = useState([])
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+    const { user, loading } = useAuth()
+
+    // Session State
     const [newSession, setNewSession] = useState({
-        category: '',
-        duration: '',
-        max_capacity: '',
+        type: '',
+        name: '',
+        description: '',
+        duration_minutes: '',
+        min_no_of_slots: '',
+        max_advance_booking_days: 30,
+        min_advance_booking_hours: 2,
+        instructor_name: '',
+        requires_booking: true,
+        equipment: [],
         per_session_price: '',
         couple_session_price: '',
     });
-    const [selectedSession, setSelectedSession] = useState({
-        id: 0,
-        category: '',
-        duration: 0,
-        max_capacity: 0,
-        per_session_price: 0,
-        couple_session_price: 0,
-    });
-    const [availabilityData, setAvailabilityData] = useState({
-        days: [],
-        startTime: '',
-        endTime: '',
-    })
-    const [editAvailabilityData, setEditAvailabilityData] = useState({
-        day: '',
-        start_time: '',
-        end_time: '',
-        id: 0,
-        session_id: 0
-    })
-    const [currentPage, setCurrentPage] = useState(1)
-    // const [loading, setLoading] = useState(false) // useAuth has loading
-    const itemsPerPage = 6
-    const totalPages = sessions ? Math.ceil(sessions.length / itemsPerPage) : 1;
-    const indexOfLastSession = currentPage * itemsPerPage
-    const indexOfFirstSession = indexOfLastSession - itemsPerPage
-    const currentSessions = sessions ? sessions.slice(indexOfFirstSession, indexOfLastSession) : [];
-    const paginate = (pageNumber) => setCurrentPage(pageNumber)
-    const { user, loading } = useAuth()
-    const [categories, setCategories] = useState([])
-    const router = useRouter();
 
-    const fetchSessions = async () => {
-        try {
-            if (!user) return;
-            const token = await user.getIdToken();
-            console.log("in fetchsessions", fitnessCentreId);
+    // Schedule State
+    // Format: { 'yyyy-MM-dd': [{ start_time: 'HH:mm', end_time: 'HH:mm' }, ...] }
+    const [schedules, setSchedules] = useState({});
+    const [selectedDate, setSelectedDate] = useState(new Date());
+    const [currentSlot, setCurrentSlot] = useState({ start_time: '', end_time: '' });
 
-            const response = await fetch(
-                `/api/fitness-center/session?fitness_centre_id=${fitnessCentreId}`,
-                {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                }
-            );
-            const data = await response.json();
+    // Equipment input
+    const [equipmentInput, setEquipmentInput] = useState('');
 
-            if (data.msg === 'Success' && Array.isArray(data.data)) {
-                const sessions = data.data.map(({ Session_Availability, ...session }) => session);
-                const availabilities = data.data
-                    .flatMap(({ Session_Availability }) => Session_Availability || [])
+    const facilityTypes = [
+        { label: "GYM", value: "FACILITY_TYPE_GYM" },
+        { label: "YOGA", value: "FACILITY_TYPE_YOGA" },
+        { label: "ZUMBA", value: "FACILITY_TYPE_ZUMBA" },
+        { label: "PERSONAL TRAINING", value: "FACILITY_TYPE_PERSONAL_TRAINING" },
+        { label: "SWIMMING", value: "FACILITY_TYPE_SWIMMING" }
+    ];
 
-                setSessions(sessions);
-                setAvailabilities(availabilities);
 
-                console.log("sess", sessions);
-                console.log("av", availabilities);
-            } else {
-                console.log('No sessions found or error in response');
-            }
-        } catch (error) {
-            console.log('Error fetching sessions:', error);
-        }
-    };
 
-    const handleDelete = async (id) => {
-        if (!user) return;
-        const token = await user.getIdToken();
-        const response = await fetch(`/api/vendor/session/${id}`, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-            }
-        })
-        const data = await response.json()
-        let responseMessage = data.message
-        if (responseMessage === 'OK') {
-            alert('Session deleted')
-            fetchSessions()
-        } else
-            alert('Error deleting session!')
-    }
-
-    const handleDeleteAvailability = async (id) => {
-        if (!user) return;
-        const token = await user.getIdToken();
-        const response = await fetch(`/api/vendor/availability/${id}`, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-            }
-        })
-        const data = await response.json()
-        let responseMessage = data.message
-        if (responseMessage === 'OK') {
-            alert('Availability deleted')
-            fetchSessions()
-        } else
-            alert('Error deleting availability!')
-    }
-
-    const addSession = async (e) => {
-        e.preventDefault();
-        console.log(newSession)
-        const { category, duration, max_capacity, per_session_price, couple_session_price } = newSession;
-
-        if (!category || !duration || !max_capacity || !per_session_price || !couple_session_price) {
-            alert('Please fill all the required fields!');
-            return;
-        }
-
-        if (!user) return;
-        const token = await user.getIdToken();
-
-        const response = await fetch(`/api/vendor/session`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-                category,
-                max_capacity: parseInt(max_capacity),
-                per_session_price: parseFloat(per_session_price),
-                couple_session_price: parseFloat(couple_session_price),
-                duration: parseInt(duration),
-            }),
-        });
-
-        const data = await response.json();
-        console.log("reached")
-        console.log(data.message)
-        if (data.message === 'OK') {
-            alert('Session added successfully!');
-            setNewSession({
-                category: '',
-                duration: '',
-                max_capacity: '',
-                per_session_price: '',
-                couple_session_price: '',
-            });
-            fetchSessions();
-        } else {
-            alert('Error adding session!');
-        }
-    };
-
-    const editSession = async (e) => {
-        e.preventDefault();
-
-        const { id, category, duration, max_capacity, per_session_price, couple_session_price } = selectedSession;
-
-        if (!category || !duration || !max_capacity || !per_session_price || !couple_session_price) {
-            alert('Please fill all fields!');
-            return;
-        }
-
-        if (!user) return;
-        const token = await user.getIdToken();
-
-        const response = await fetch(`/api/vendor/session/${id}`, {
-            method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-                category,
-                max_capacity: max_capacity,
-                per_session_price: per_session_price,
-                couple_session_price: couple_session_price,
-                duration,
-            }),
-        });
-
-        const data = await response.json();
-        if (data.message === 'OK') {
-            alert('Session updated successfully!');
-            setIsEditModalOpen(false);
-            fetchSessions();
-        } else {
-            alert('Error updating session!');
-        }
-    };
-
-    const handleInputChange = (e) => {
-        setNewSession({
-            ...newSession,
-            [e.target.name]: e.target.value,
-        });
-    };
-
-    const handleAvailabilityChange = (e) => {
-        const { name, value, checked } = e.target;
-        if (name === 'days') {
-            setAvailabilityData((prev) => ({
+    const handleAddEquipment = () => {
+        if (equipmentInput.trim()) {
+            setNewSession(prev => ({
                 ...prev,
-                days: checked
-                    ? [...prev.days, value]
-                    : prev.days.filter((day) => day !== value),
+                equipment: [...prev.equipment, equipmentInput.trim()]
             }));
-        } else {
-            setAvailabilityData((prev) => ({
-                ...prev,
-                [name]: value,
-            }));
+            setEquipmentInput('');
         }
     };
 
-    const handleEditAvailabilityChange = (e) => {
-        const { name, value } = e.target;
-        setEditAvailabilityData((prev) => ({
+    const handleRemoveEquipment = (index) => {
+        setNewSession(prev => ({
             ...prev,
-            [name]: value,
+            equipment: prev.equipment.filter((_, i) => i !== index)
         }));
     };
 
-    const handleAddAvailability = async (e) => {
-        e.preventDefault();
-        if (availabilityData.days.length < 1 || !availabilityData.startTime || !availabilityData.endTime || !selectedSession?.id) {
-            alert('Please fill all the required fields!');
+    const handleInputChange = (e) => {
+        const { name, value, type, checked } = e.target;
+        setNewSession({
+            ...newSession,
+            [name]: type === 'checkbox' ? (name === 'requires_booking' ? checked : value) : value,
+        });
+    };
+
+    // Schedule Handlers
+    const handleAddSlot = () => {
+        if (!currentSlot.start_time || !currentSlot.end_time || !selectedDate) {
+            alert("Please select a start and end time.");
             return;
         }
-        const availabilityPayload = {
-            availability: availabilityData.days.map((day) => ({
-                day,
-                start_time: availabilityData.startTime,
-                end_time: availabilityData.endTime,
-                session_id: selectedSession.id,
-            })),
+
+        const dateKey = format(selectedDate, 'yyyy-MM-dd');
+        const existingSlots = schedules[dateKey] || [];
+
+        setSchedules({
+            ...schedules,
+            [dateKey]: [...existingSlots, currentSlot]
+        });
+
+        // Reset current slot inputs
+        setCurrentSlot({ start_time: '', end_time: '' });
+    };
+
+    const handleRemoveSlot = (dateKey, index) => {
+        const updatedSlots = schedules[dateKey].filter((_, i) => i !== index);
+        if (updatedSlots.length === 0) {
+            const newSchedules = { ...schedules };
+            delete newSchedules[dateKey];
+            setSchedules(newSchedules);
+        } else {
+            setSchedules({
+                ...schedules,
+                [dateKey]: updatedSlots
+            });
+        }
+    };
+
+    const addSession = async (e) => {
+        e.preventDefault();
+
+        const {
+            type, name, description, duration_minutes, min_no_of_slots,
+            max_advance_booking_days, min_advance_booking_hours,
+            instructor_name, equipment, per_session_price, couple_session_price
+        } = newSession;
+
+        // Validation
+        if (!type || !name || !description || !duration_minutes || !min_no_of_slots ||
+            !instructor_name || !per_session_price) {
+            alert('Please fill all the required session fields!');
+            return;
+        }
+
+        if (Object.keys(schedules).length === 0) {
+            alert('Please add at least one schedule slot!');
+            return;
+        }
+
+        if (!user) return;
+        const token = await user.getIdToken();
+
+        // 1. Create Session Payload
+        const sessionPayload = {
+            type,
+            name,
+            description,
+            equipment,
+            instructor_name,
+            requires_booking: newSession.requires_booking,
+            duration_minutes: parseInt(duration_minutes),
+            min_no_of_slots: parseInt(min_no_of_slots),
+            max_advance_booking_days: parseInt(max_advance_booking_days || 30),
+            min_advance_booking_hours: parseInt(min_advance_booking_hours || 2),
+            per_session_price: parseFloat(per_session_price),
+            couple_session_price: parseFloat(couple_session_price || 0),
+            fitness_center_id: fitnessCentreId
         };
 
         try {
-            if (!user) return;
-            const token = await user.getIdToken();
-            const response = await fetch(`/api/vendor/availability`, {
+            // Step 1: Create Session
+            const sessionResponse = await fetch(`/api/vendor/session`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify(sessionPayload),
+            });
+
+            const sessionData = await sessionResponse.json();
+
+            if (!sessionResponse.ok || (sessionData.message !== 'OK' && !sessionData._id && !sessionData.id && !sessionData.data)) {
+                throw new Error(sessionData.message || sessionData.error || 'Failed to create session');
+            }
+
+            const newSessionId = sessionData._id || sessionData.id || sessionData.data?._id;
+
+            if (!newSessionId) {
+                throw new Error('Session created but no ID returned. Cannot add schedule.');
+            }
+
+            // Step 2: Transform Schedules for API
+            // Flatten the schedules object into an array of availability objects
+            // The API likely expects 'day' to be the date string now based on this new usage
+            const availabilityList = Object.entries(schedules).flatMap(([dateStr, slots]) =>
+                slots.map(slot => ({
+                    day: dateStr, // Sending YYYY-MM-DD as 'day'
+                    start_time: slot.start_time,
+                    end_time: slot.end_time,
+                    session_id: newSessionId
+                }))
+            );
+
+            const availabilityPayload = {
+                availability: availabilityList
+            };
+
+            const availabilityResponse = await fetch(`/api/vendor/availability`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -277,449 +198,274 @@ const VendorSessionManagement = () => {
                 },
                 body: JSON.stringify(availabilityPayload),
             });
-            const data = await response.json();
-            if (response.ok) {
-                alert('Availability added successfully!');
-                setIsEditModalOpen(false)
-                setAvailabilityData({
-                    days: [],
-                    startTime: '',
-                    endTime: '',
+
+            const availabilityResData = await availabilityResponse.json();
+
+            if (availabilityResponse.ok) {
+                alert('Session and Schedule added successfully!');
+                // Reset Form
+                setNewSession({
+                    type: '', name: '', description: '', duration_minutes: '', min_no_of_slots: '',
+                    max_advance_booking_days: 30, min_advance_booking_hours: 2, instructor_name: '',
+                    requires_booking: true, equipment: [], per_session_price: '', couple_session_price: '',
                 });
-                fetchSessions()
-            } else
-                alert('Error adding availability: ' + data.message);
-        }
-        catch (error) {
-            console.error('Error adding availability:', error);
-            alert('An error occurred while adding availability.');
-        }
-    };
-
-    const handleEditAvailability = async (e) => {
-        e.preventDefault();
-
-        console.log(editAvailabilityData.day, editAvailabilityData.start_time, editAvailabilityData.end_time)
-        const availabilityPayload = {
-            availability: {
-                day: editAvailabilityData.day,
-                start_time: editAvailabilityData.start_time,
-                end_time: editAvailabilityData.end_time
-            },
-        };
-        console.log('Payload to send:', availabilityPayload);
-        try {
-            if (!user) return;
-            const token = await user.getIdToken();
-            const response = await fetch(`/api/vendor/availability/${editAvailabilityData.id}`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(availabilityPayload),
-            });
-            const data = await response.json();
-            if (response.ok) {
-                alert('Availability updated successfully!');
-                setIsEditModalOpen(false)
-                setEditAvailabilityData({
-                    day: '',
-                    start_time: '',
-                    end_time: '',
-                    id: 0,
-                    session_id: 0
-                });
-                fetchSessions()
-            } else
-                alert('Error updating availability: ' + data.message);
-        }
-        catch (error) {
-            console.error('Error updating availability:', error);
-            alert('An error occurred while updating availability.');
-        }
-    };
-
-    const fetchCategories = async () => {
-        try {
-            if (!user) return;
-            const token = await user.getIdToken();
-            const response = await fetch(`/api/vendor/category`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-            });
-
-            const data = await response.json();
-            setCategories(data.data);
-            console.log(categories)
+                setSchedules({});
+                setEquipmentInput('');
+            } else {
+                alert(`Session created, but failed to add schedule: ${availabilityResData.message}`);
+            }
 
         } catch (error) {
-            console.log("Error fetching categories:", error);
+            console.error(error);
+            alert(`Error: ${error.message}`);
         }
-    }
+    };
 
-    useEffect(() => {
-        if (user) {
-            fetchSessions()
-            fetchCategories()
-        }
-    }, [user])
+    const selectedDateKey = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null;
+    const selectedDateSlots = selectedDateKey ? (schedules[selectedDateKey] || []) : [];
 
     return (
         <div className="space-y-6">
             <Card>
                 <CardHeader>
-                    <CardTitle>Add New Session</CardTitle>
+                    <CardTitle>Add New Facility Session</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <form onSubmit={addSession} className="space-y-4">
-                        <div className="grid grid-cols-3 gap-3">
-                            <div>
-                                <Label htmlFor="category">Category <span className='text-red-600 text-lg'>*</span></Label>
-                                <Select name="category" onValueChange={(value) => setNewSession({ ...newSession, category: value })}>
+                    <form onSubmit={addSession} className="space-y-6">
+
+                        {/* --- Basic Session Info --- */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {/* Facility Type */}
+                            <div className="space-y-2">
+                                <Label htmlFor="type">Facility Type <span className='text-red-600'>*</span></Label>
+                                <Select name="type" value={newSession.type} onValueChange={(value) => setNewSession({ ...newSession, type: value })}>
                                     <SelectTrigger>
-                                        <SelectValue placeholder="Select a category" />
+                                        <SelectValue placeholder="Select type" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {categories?.map((category) => (
-                                            <SelectItem key={category.id} value={category.name}>
-                                                {category.name}
-                                            </SelectItem>
+                                        {facilityTypes.map((t) => (
+                                            <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <div>
-                                <Label htmlFor="duration">Duration (minutes) <span className='text-red-600 text-lg'>*</span></Label>
-                                <Input id="duration" name="duration" type="number" min="15" step="1" required value={newSession.duration} onChange={handleInputChange} />
+
+                            {/* Session Name */}
+                            <div className="space-y-2">
+                                <Label htmlFor="name">Session Name <span className='text-red-600'>*</span></Label>
+                                <Input id="name" name="name" placeholder="e.g. Morning Zumba" required value={newSession.name} onChange={handleInputChange} />
                             </div>
-                            <div>
-                                <Label htmlFor="max_capacity">Max Capacity <span className='text-red-600 text-lg'>*</span></Label>
-                                <Input id="max_capacity" name="max_capacity" type="number" min="1" required value={newSession.max_capacity} onChange={handleInputChange} />
+
+                            {/* Instructor Name */}
+                            <div className="space-y-2">
+                                <Label htmlFor="instructor_name">Instructor Name <span className='text-red-600'>*</span></Label>
+                                <Input id="instructor_name" name="instructor_name" required value={newSession.instructor_name} onChange={handleInputChange} />
                             </div>
-                            <div>
-                                <Label htmlFor="per_session_price">Price per Session<span className='text-red-600 text-lg'>*</span></Label>
+
+                            {/* Duration */}
+                            <div className="space-y-2">
+                                <Label htmlFor="duration_minutes">Duration (minutes) <span className='text-red-600'>*</span></Label>
+                                <Input id="duration_minutes" name="duration_minutes" type="number" min="15" required value={newSession.duration_minutes} onChange={handleInputChange} />
+                            </div>
+
+                            {/* Min Slots */}
+                            <div className="space-y-2">
+                                <Label htmlFor="min_no_of_slots">Min Slots <span className='text-red-600'>*</span></Label>
+                                <Input id="min_no_of_slots" name="min_no_of_slots" type="number" min="1" required value={newSession.min_no_of_slots} onChange={handleInputChange} />
+                            </div>
+
+                            {/* Price */}
+                            <div className="space-y-2">
+                                <Label htmlFor="per_session_price">Price per Session <span className='text-red-600'>*</span></Label>
                                 <Input id="per_session_price" name="per_session_price" type="number" min="0" required value={newSession.per_session_price} onChange={handleInputChange} />
                             </div>
-                            <div>
-                                <Label htmlFor="couple_session_price">Couples Session Price<span className='text-red-600 text-lg'>*</span></Label>
-                                <Input id="couple_session_price" name="couple_session_price" type="number" min="0" required value={newSession.couple_session_price} onChange={handleInputChange} />
+
+                            {/* Couple Price */}
+                            <div className="space-y-2">
+                                <Label htmlFor="couple_session_price">Couples Price (Optional)</Label>
+                                <Input id="couple_session_price" name="couple_session_price" type="number" min="0" value={newSession.couple_session_price} onChange={handleInputChange} />
+                            </div>
+
+                            {/* Requires Booking Checkbox */}
+                            <div className="flex items-center space-x-2 pt-8">
+                                <Input
+                                    id="requires_booking"
+                                    name="requires_booking"
+                                    type="checkbox"
+                                    className="h-4 w-4"
+                                    checked={newSession.requires_booking}
+                                    onChange={handleInputChange}
+                                />
+                                <Label htmlFor="requires_booking">Requires Booking</Label>
                             </div>
                         </div>
-                        <Button type="submit" className="bg-red-600 hover:bg-red-700 text-white">Add Session</Button>
-                    </form>
-                </CardContent>
-            </Card>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>All Sessions</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {
-                        loading ? (<div><Loader className='h-8 w-8 animate-spin' /></div>) : (
-                            <><div className="space-y-4">
-                                {currentSessions.map((session, ind) => (
-                                    <div key={session.id} className="flex justify-between items-center">
-                                        <div>
-                                            <h4 className="font-semibold">{session.category}</h4>
-                                            <div className='flex flex-row gap-3'>
-                                                <p className="text-sm text-gray-500">Duration: {session.duration} minutes</p>
-                                                <p className="text-sm text-gray-500">Capacity: {session.max_capacity}</p>
-                                                <p className="text-sm text-gray-500">Price: {session.per_session_price}</p>
-                                                <p className="text-sm text-gray-500">Couples Session Price: {session.couple_session_price}</p>
+                        {/* Booking Rules */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 p-4 rounded-md border">
+                            <h3 className="col-span-full font-semibold text-gray-700">Booking Rules</h3>
+                            <div className="space-y-2">
+                                <Label htmlFor="max_advance_booking_days" className="text-sm text-gray-600">Max Advance Booking (Days)</Label>
+                                <Input id="max_advance_booking_days" name="max_advance_booking_days" type="number" min="1" value={newSession.max_advance_booking_days} onChange={handleInputChange} className="bg-white" />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="min_advance_booking_hours" className="text-sm text-gray-600">Min Advance Booking (Hours)</Label>
+                                <Input id="min_advance_booking_hours" name="min_advance_booking_hours" type="number" min="0" value={newSession.min_advance_booking_hours} onChange={handleInputChange} className="bg-white" />
+                            </div>
+                        </div>
+
+                        {/* Description */}
+                        <div className="space-y-2">
+                            <Label htmlFor="description">Description <span className='text-red-600'>*</span></Label>
+                            <Textarea id="description" name="description" required value={newSession.description} onChange={handleInputChange} />
+                        </div>
+
+                        {/* Equipment */}
+                        <div className="space-y-2">
+                            <Label>Equipment Provided</Label>
+                            <div className="flex gap-2">
+                                <Input
+                                    value={equipmentInput}
+                                    onChange={(e) => setEquipmentInput(e.target.value)}
+                                    placeholder="Add equipment (e.g. Yoga Mat)"
+                                />
+
+                                <Button type="button" onClick={handleAddEquipment} variant="outline" className="bg-black px-4 text-white">
+                                    <Plus className="h-4 w-4" />
+                                    <span>Add</span>
+                                </Button>
+                            </div>
+                            {newSession.equipment.length > 0 && (
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                    {newSession.equipment.map((item, index) => (
+                                        <div key={index} className="bg-gray-100 px-3 py-1 rounded-full flex items-center gap-2 text-sm">
+                                            <span>{item}</span>
+                                            <button type="button" onClick={() => handleRemoveEquipment(index)} className="text-gray-500 hover:text-red-600">
+                                                <X className="h-3 w-3" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* --- Advanced Calendar Schedule Section --- */}
+                        <div className="space-y-4 pt-6 border-t font-sans">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h3 className="text-xl font-semibold">Session Schedule</h3>
+                                    <p className="text-sm text-muted-foreground">Select a date to manage time slots.</p>
+                                </div>
+                                <div className="text-sm bg-blue-50 text-blue-700 px-3 py-1 rounded-full border border-blue-100">
+                                    {Object.keys(schedules).length} days configured
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col md:flex-row gap-8 items-start">
+                                {/* Calendar Column */}
+                                <div className="p-4 border rounded-lg bg-white shadow-sm flex-shrink-0 w-full md:w-auto flex justify-center">
+                                    <Calendar
+                                        mode="single"
+                                        selected={selectedDate}
+                                        onSelect={setSelectedDate}
+                                        className="rounded-md border p-3 pointer-events-auto"
+                                        classNames={{
+                                            day: "h-9 w-9 px-4 font-normal aria-selected:opacity-100 rounded-full transition-colors",
+                                            day_selected: "bg-red-600 text-white hover:bg-red-700 hover:text-white focus:bg-red-700 focus:text-white", // 👈 CHANGED THIS LINE
+                                            day_today: "bg-slate-100 text-slate-900",
+                                            head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
+                                            cell: "text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20 pl-3", // Increased pl-1 to pl-3 to shift dates right
+                                        }}
+                                        // Highlight days that have schedules
+                                        modifiers={{
+                                            hasSchedule: (date) => !!schedules[format(date, 'yyyy-MM-dd')]
+                                        }}
+                                        modifiersStyles={{
+                                            hasSchedule: { fontWeight: 'bold', textDecoration: 'underline', color: '#dc2626' }
+                                        }}
+                                    />
+                                </div>
+
+                                {/* Slots Column */}
+                                <div className="flex-1 w-full space-y-4">
+                                    {selectedDate ? (
+                                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 transition-all duration-300 ease-in-out">
+                                            <h4 className="font-semibold text-lg mb-4 flex items-center">
+                                                <Clock className="w-5 h-5 mr-2 text-gray-500" />
+                                                Slots for {format(selectedDate, 'MMMM do, yyyy')}
+                                            </h4>
+
+                                            {/* Existing Slots for this day */}
+                                            {selectedDateSlots.length > 0 ? (
+                                                <div className="space-y-2 mb-6">
+                                                    {selectedDateSlots.map((slot, idx) => (
+                                                        <div key={idx} className="flex items-center justify-between bg-white p-3 rounded border shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+                                                            <span className="font-medium text-gray-700">{slot.start_time} - {slot.end_time}</span>
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                                onClick={() => handleRemoveSlot(selectedDateKey, idx)}
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </Button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <p className="text-sm text-gray-500 italic mb-6">No slots added for this date yet.</p>
+                                            )}
+
+                                            {/* Add New Slot Inputs */}
+                                            {/* Add New Slot Inputs - Redesign */}
+                                            <div className="mt-6 pt-4 border-t border-gray-100">
+                                                <Label className="text-sm font-medium text-gray-700 mb-3 block">Add New Time Slot</Label>
+                                                <div className="bg-white p-3 rounded-md border border-gray-200 shadow-sm flex items-center gap-3">
+                                                    <div className="grid grid-cols-2 gap-3 flex-1">
+                                                        <div className="relative">
+                                                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-medium">From</span>
+                                                            <Input
+                                                                type="time"
+                                                                value={currentSlot.start_time}
+                                                                onChange={(e) => setCurrentSlot({ ...currentSlot, start_time: e.target.value })}
+                                                                className="pl-12 text-center font-medium bg-gray-50 focus:bg-white transition-colors h-10 border-gray-200"
+                                                            />
+                                                        </div>
+                                                        <div className="relative">
+                                                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-medium">To</span>
+                                                            <Input
+                                                                type="time"
+                                                                value={currentSlot.end_time}
+                                                                onChange={(e) => setCurrentSlot({ ...currentSlot, end_time: e.target.value })}
+                                                                className="pl-8 text-center font-medium bg-gray-50 focus:bg-white transition-colors h-10 border-gray-200"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <Button
+                                                        type="button"
+                                                        onClick={handleAddSlot}
+                                                        className="bg-black hover:bg-gray-800 text-white h-10 px-4 shadow-sm transition-all flex items-center gap-2"
+                                                    >
+                                                        <Plus className="h-4 w-4" />
+                                                        <span>Add</span>
+                                                    </Button>
+                                                </div>
                                             </div>
                                         </div>
-                                        <div className="flex space-x-2">
-                                            <Dialog>
-                                                <DialogTrigger asChild>
-                                                    <Button variant="outline" size="sm" onClick={() => setSelectedSession(session)}>
-                                                        <Plus className="w-4 h-4 mr-2" />
-                                                        Add Availability
-                                                    </Button>
-                                                </DialogTrigger>
-                                                <DialogContent>
-                                                    <DialogHeader>
-                                                        <DialogTitle>Add Availability for {selectedSession?.category}</DialogTitle>
-                                                    </DialogHeader>
-                                                    <form onSubmit={handleAddAvailability} className="space-y-4">
-                                                        <div className="grid grid-cols-2 gap-2">
-                                                            {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => (
-                                                                <div key={day} className="flex items-center space-x-2">
-                                                                    <Input
-                                                                        type='checkbox'
-                                                                        id={day.toLowerCase()}
-                                                                        name="days"
-                                                                        value={day.toLowerCase()}
-                                                                        onChange={(e) => handleAvailabilityChange(e)}
-                                                                        className='h-4 w-4' />
-                                                                    <label htmlFor={day.toLowerCase()}>{day}</label>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                        <div>
-                                                            <Label htmlFor="startTime">Start Time</Label>
-                                                            <Input id="startTime" name="startTime" type="time" required value={availabilityData.startTime} onChange={handleAvailabilityChange} />
-                                                        </div>
-                                                        <div>
-                                                            <Label htmlFor="endTime">End Time</Label>
-                                                            <Input id="endTime" name="endTime" type="time" required value={availabilityData.endTime} onChange={handleAvailabilityChange} />
-                                                        </div>
-                                                        <DialogFooter>
-                                                            <Button type="submit" className="bg-red-600 hover:bg-red-700 text-white">Add Availability</Button>
-                                                        </DialogFooter>
-                                                    </form>
-                                                </DialogContent>
-                                            </Dialog>
-                                            <Dialog>
-                                                <DialogTrigger asChild>
-                                                    <Button variant="outline" size="sm" onClick={() => setSelectedSession(session)}>
-                                                        <Edit className="w-4 h-4 mr-2" />
-                                                        Edit
-                                                    </Button>
-                                                </DialogTrigger>
-                                                <DialogContent>
-                                                    <DialogHeader>
-                                                        <DialogTitle>Edit Session: {selectedSession?.category}</DialogTitle>
-                                                    </DialogHeader>
-                                                    <form onSubmit={editSession} className="space-y-4">
-                                                        <div className="grid grid-cols-2 gap-3">
-                                                            <div>
-                                                                <Label htmlFor="edit-category">Category</Label>
-                                                                <Select value={selectedSession?.category || ""} onValueChange={(value) => setSelectedSession({ ...selectedSession, category: value })}>
-                                                                    <SelectTrigger id="edit-category">
-                                                                        <SelectValue placeholder="Select a category" />
-                                                                    </SelectTrigger>
-                                                                    <SelectContent>
-                                                                        {categories?.map((category) => (
-                                                                            <SelectItem key={category.id} value={category.name}>
-                                                                                {category.name}
-                                                                            </SelectItem>
-                                                                        ))}
-                                                                    </SelectContent>
-                                                                </Select>
-                                                            </div>
-                                                            <div>
-                                                                <Label htmlFor="edit-duration">Duration (minutes)</Label>
-                                                                <Input id="edit-duration" name="duration" type="number" min="15" step="1" value={selectedSession?.duration || ""} onChange={(e) => setSelectedSession({ ...selectedSession, duration: parseInt(e.target.value) })} required />
-                                                            </div>
-                                                            <div>
-                                                                <Label htmlFor="edit-max_capacity">Max Capacity</Label>
-                                                                <Input id="edit-max_capacity" name="max_capacity" type="number" min="1" value={selectedSession?.max_capacity || ""} onChange={(e) => setSelectedSession({ ...selectedSession, max_capacity: parseInt(e.target.value) })} required />
-                                                            </div>
-                                                            <div>
-                                                                <Label htmlFor="edit-per_session_price">Price per Session</Label>
-                                                                <Input id="edit-per_session_price" name="per_session_price" type="number" min="0" value={selectedSession?.per_session_price || ""} onChange={(e) => setSelectedSession({ ...selectedSession, per_session_price: parseFloat(e.target.value) })} required />
-                                                            </div>
-                                                            <div>
-                                                                <Label htmlFor="edit-couple_session_price">Couples Session Price</Label>
-                                                                <Input id="edit-couple_session_price" name="couple_session_price" type="number" min="0" value={selectedSession?.couple_session_price || ""} onChange={(e) => setSelectedSession({ ...selectedSession, couple_session_price: parseFloat(e.target.value) })} required />
-                                                            </div>
-                                                        </div>
-                                                        <DialogFooter>
-                                                            <Button onClick={() => { setIsEditModalOpen(false) }} type="submit" className="bg-red-600 hover:bg-red-700 text-white">Save Changes</Button>
-                                                        </DialogFooter>
-                                                    </form>
-                                                </DialogContent>
-                                            </Dialog>
-                                            <AlertDialog>
-                                                <AlertDialogTrigger asChild>
-                                                    <Button variant="outline" size="sm">
-                                                        <Trash className="w-4 h-4 mr-2" />
-                                                        Delete
-                                                    </Button>
-                                                </AlertDialogTrigger>
-                                                <AlertDialogContent>
-                                                    <AlertDialogHeader>
-                                                        <AlertDialogTitle>Are you sure you want to delete this session?</AlertDialogTitle>
-                                                        <AlertDialogDescription>
-                                                            This action cannot be undone. This will permanently delete the session.
-                                                        </AlertDialogDescription>
-                                                    </AlertDialogHeader>
-                                                    <AlertDialogFooter>
-                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                        <AlertDialogAction onClick={() => { handleDelete(session.id) }} className="bg-red-600 hover:bg-red-700 text-white">
-                                                            Delete
-                                                        </AlertDialogAction>
-                                                    </AlertDialogFooter>
-                                                </AlertDialogContent>
-                                            </AlertDialog>
+                                    ) : (
+                                        <div className="flex items-center justify-center h-full text-gray-400 border-2 border-dashed rounded-lg p-8">
+                                            Select a date to configure slots
                                         </div>
-                                    </div>
-                                ))}
-                            </div><div className="flex justify-center mt-4 space-x-2">
-                                    <Button
-                                        onClick={() => paginate(currentPage - 1)}
-                                        disabled={currentPage === 1}
-                                        variant="outline"
-                                        size="icon"
-                                    >
-                                        <ChevronLeft className="h-4 w-4" />
-                                    </Button>
-                                    {Array.from({ length: totalPages }, (_, i) => (
-                                        <Button
-                                            key={i + 1}
-                                            onClick={() => paginate(i + 1)}
-                                            variant={currentPage === i + 1 ? "default" : "outline"}
-                                            className={currentPage === i + 1 ? "bg-red-600 hover:bg-red-700 text-white" : ""}
-                                        >
-                                            {i + 1}
-                                        </Button>
-                                    ))}
-                                    <Button
-                                        onClick={() => paginate(currentPage + 1)}
-                                        disabled={currentPage === totalPages}
-                                        variant="outline"
-                                        size="icon"
-                                    >
-                                        <ChevronRight className="h-4 w-4" />
-                                    </Button>
-                                </div></>
-                        )
-                    }
-                </CardContent>
-            </Card>
-
-            <Card className="p-4">
-                <CardHeader className="p-0 pb-4">
-                    <CardTitle>Session Calendar</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4">
-                    <div className="flex flex-col xl:flex-row gap-6">
-                        <div className="w-full xl:w-auto flex justify-center items-start">
-                            <div className="p-4 border rounded-lg shadow-sm bg-white">
-                                <Calendar
-                                    mode="single"
-                                    selected={date}
-                                    onSelect={setDate}
-                                    className="rounded-md"
-                                />
+                                    )}
+                                </div>
                             </div>
                         </div>
-                        <div className="w-full flex-1">
-                            <h3 className="text-lg font-semibold mb-4">Sessions for {date?.toDateString()}</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                                {availabilities && availabilities.length > 0 ? (
-                                    availabilities
-                                        .filter(availability => {
-                                            const dayName = date
-                                                ? date.toLocaleDateString("en-US", { weekday: "long" }).toLowerCase()
-                                                : null;
-                                            return (
-                                                dayName && availability.day.toLowerCase() === dayName
-                                            );
-                                        })
-                                        .map(availability => {
-                                            const session = sessions.find(
-                                                s => s.id === availability.session_id
-                                            );
-                                            if (!session) {
-                                                return null;
-                                            }
-                                            return (
-                                                <Card
-                                                    key={availability.id}
-                                                    className="group relative hover:shadow-md transition-all border-l-4 border-l-red-600"
-                                                >
-                                                    <CardContent className="p-4">
-                                                        <div className="flex flex-col gap-2">
-                                                            <div className="flex justify-between items-start">
-                                                                <h4 className="font-semibold text-lg">{session.category}</h4>
-                                                                <span className="font-bold text-red-600">
-                                                                    &#8377; {session.per_session_price}
-                                                                </span>
-                                                            </div>
 
-                                                            <div className="space-y-1 text-sm text-gray-600">
-                                                                <div className="flex items-center">
-                                                                    <Clock className="w-4 h-4 mr-2 text-gray-400" />
-                                                                    {availability.start_time} - {availability.end_time}
-                                                                </div>
-                                                                <div className="flex items-center">
-                                                                    <Users className="w-4 h-4 mr-2 text-gray-400" />
-                                                                    {session.max_capacity} max capacity
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </CardContent>
-                                                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1 bg-white/90 rounded-md p-1 shadow-sm">
-                                                        <Dialog>
-                                                            <DialogTrigger asChild>
-                                                                <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-blue-600" onClick={() => setEditAvailabilityData(availability)} >
-                                                                    <Pencil className="h-4 w-4" />
-                                                                </Button>
-                                                            </DialogTrigger>
-                                                            <DialogContent>
-                                                                <DialogHeader>
-                                                                    <DialogTitle>Edit Availability</DialogTitle>
-                                                                </DialogHeader>
-                                                                <form onSubmit={handleEditAvailability} className="space-y-4">
-                                                                    <div className="grid grid-cols-2 gap-2">
-                                                                        {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => (
-                                                                            <div key={day} className="flex items-center space-x-2">
-                                                                                <Input
-                                                                                    type='checkbox'
-                                                                                    id={day.toLowerCase()}
-                                                                                    name="days"
-                                                                                    value={day.toLowerCase()}
-                                                                                    onChange={(e) => setEditAvailabilityData({ ...editAvailabilityData, day: e.target.value })}
-                                                                                    className='h-4 w-4' />
-                                                                                <label htmlFor={day.toLowerCase()}>{day}</label>
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-                                                                    <div>
-                                                                        <Label htmlFor="startTime">Start Time</Label>
-                                                                        <Input id="startTime" name="startTime" type="time" required value={editAvailabilityData.start_time} onChange={(e) => setEditAvailabilityData({ ...editAvailabilityData, start_time: e.target.value })} />
-                                                                    </div>
-                                                                    <div>
-                                                                        <Label htmlFor="endTime">End Time</Label>
-                                                                        <Input id="endTime" name="endTime" type="time" required value={editAvailabilityData.end_time} onChange={(e) => setEditAvailabilityData({ ...editAvailabilityData, end_time: e.target.value })} />
-                                                                    </div>
-                                                                    <DialogFooter>
-                                                                        <Button type="submit" className="bg-red-600 hover:bg-red-700 text-white">Update Availability</Button>
-                                                                    </DialogFooter>
-                                                                </form>
-                                                            </DialogContent>
-                                                        </Dialog>
-
-                                                        <AlertDialog>
-                                                            <AlertDialogTrigger asChild>
-                                                                <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-red-600">
-                                                                    <Trash className="w-4 h-4" />
-                                                                </Button>
-                                                            </AlertDialogTrigger>
-                                                            <AlertDialogContent>
-                                                                <AlertDialogHeader>
-                                                                    <AlertDialogTitle>Delete Availability?</AlertDialogTitle>
-                                                                    <AlertDialogDescription>
-                                                                        This will permanently remove this time slot from the schedule.
-                                                                    </AlertDialogDescription>
-                                                                </AlertDialogHeader>
-                                                                <AlertDialogFooter>
-                                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                                    <AlertDialogAction onClick={() => { handleDeleteAvailability(availability.id) }} className="bg-red-600 hover:bg-red-700 text-white">
-                                                                        Delete
-                                                                    </AlertDialogAction>
-                                                                </AlertDialogFooter>
-                                                            </AlertDialogContent>
-                                                        </AlertDialog>
-                                                    </div>
-                                                </Card>
-                                            );
-                                        })
-                                ) : (
-                                    <div className="col-span-full flex flex-col items-center justify-center p-8 text-gray-500 bg-gray-50 rounded-lg border border-dashed">
-                                        <Calendar className="w-12 h-12 mb-2 opacity-20" />
-                                        <p>No sessions scheduled for this day</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
+                        <Button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-6 text-lg mt-8">
+                            Save Session and Schedule
+                        </Button>
+                    </form>
                 </CardContent>
             </Card>
         </div>
