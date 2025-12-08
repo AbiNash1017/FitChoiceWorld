@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, X, Trash2, Clock } from 'lucide-react'
+import { Plus, X, Trash2, Clock, Loader2 } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -18,6 +18,7 @@ const VendorSessionManagement = () => {
     const { user, loading } = useAuth()
 
     // Session State
+    const [isSaving, setIsSaving] = useState(false);
     const [newSession, setNewSession] = useState({
         type: '',
         name: '',
@@ -132,6 +133,7 @@ const VendorSessionManagement = () => {
         }
 
         if (!user) return;
+        setIsSaving(true);
         const token = await user.getIdToken();
 
         // 1. Create Session Payload
@@ -218,6 +220,8 @@ const VendorSessionManagement = () => {
         } catch (error) {
             console.error(error);
             alert(`Error: ${error.message}`);
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -462,13 +466,20 @@ const VendorSessionManagement = () => {
                             </div>
                         </div>
 
-                        <Button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-6 text-lg mt-8">
-                            Save Session and Schedule
+                        <Button type="submit" disabled={isSaving} className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-6 text-lg mt-8 disabled:bg-red-400">
+                            {isSaving ? (
+                                <>
+                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                    Saving...
+                                </>
+                            ) : (
+                                "Save Session and Schedule"
+                            )}
                         </Button>
                     </form>
                 </CardContent>
             </Card>
-        </div>
+        </div >
     )
 }
 
