@@ -35,7 +35,7 @@ const VendorSessionManagement = () => {
     });
 
     // Schedule State
-    // Format: { 'yyyy-MM-dd': [{ start_time: 'HH:mm', end_time: 'HH:mm' }, ...] }
+    // Format: { '0': [{ start_time: 'HH:mm', end_time: 'HH:mm' }], ... } // 0 = Sunday, 1 = Monday
     const [schedules, setSchedules] = useState({});
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [currentSlot, setCurrentSlot] = useState({ start_time: '', end_time: '' });
@@ -85,28 +85,28 @@ const VendorSessionManagement = () => {
             return;
         }
 
-        const dateKey = format(selectedDate, 'yyyy-MM-dd');
-        const existingSlots = schedules[dateKey] || [];
+        const dayIndex = selectedDate.getDay(); // 0-6
+        const existingSlots = schedules[dayIndex] || [];
 
         setSchedules({
             ...schedules,
-            [dateKey]: [...existingSlots, currentSlot]
+            [dayIndex]: [...existingSlots, currentSlot]
         });
 
         // Reset current slot inputs
         setCurrentSlot({ start_time: '', end_time: '' });
     };
 
-    const handleRemoveSlot = (dateKey, index) => {
-        const updatedSlots = schedules[dateKey].filter((_, i) => i !== index);
+    const handleRemoveSlot = (dayIndex, index) => {
+        const updatedSlots = schedules[dayIndex].filter((_, i) => i !== index);
         if (updatedSlots.length === 0) {
             const newSchedules = { ...schedules };
-            delete newSchedules[dateKey];
+            delete newSchedules[dayIndex];
             setSchedules(newSchedules);
         } else {
             setSchedules({
                 ...schedules,
-                [dateKey]: updatedSlots
+                [dayIndex]: updatedSlots
             });
         }
     };
@@ -177,16 +177,31 @@ const VendorSessionManagement = () => {
             }
 
             // Step 2: Transform Schedules for API
-            // Flatten the schedules object into an array of availability objects
-            // The API likely expects 'day' to be the date string now based on this new usage
-            const availabilityList = Object.entries(schedules).flatMap(([dateStr, slots]) =>
-                slots.map(slot => ({
-                    day: dateStr, // Sending YYYY-MM-DD as 'day'
+            // The API interprets 'day' to extract the DAY_OF_WEEK.
+            // We map our generic day indices (0-6) to a representative date string (e.g., the next upcoming occurrence)
+            // so the backend can correctly extract the weekday.
+
+            const getRepresentativeDate = (dayIndexStr) => {
+                const dayIndex = parseInt(dayIndexStr);
+                const today = new Date();
+                const currentDay = today.getDay(); // 0-6
+                let daysUntil = (dayIndex - currentDay + 7) % 7;
+                // We use 'daysUntil' to find the next date corresponding to this dayIndex.
+                // It doesn't matter WHICH date it is, as long as it's the correct day of the week.
+                const nextDate = new Date(today);
+                nextDate.setDate(today.getDate() + daysUntil);
+                return format(nextDate, 'yyyy-MM-dd');
+            }
+
+            const availabilityList = Object.entries(schedules).flatMap(([dayIndex, slots]) => {
+                const representativeDate = getRepresentativeDate(dayIndex);
+                return slots.map(slot => ({
+                    day: representativeDate,
                     start_time: slot.start_time,
                     end_time: slot.end_time,
                     session_id: newSessionId
-                }))
-            );
+                }));
+            });
 
             const availabilityPayload = {
                 availability: availabilityList
@@ -225,8 +240,8 @@ const VendorSessionManagement = () => {
         }
     };
 
-    const selectedDateKey = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null;
-    const selectedDateSlots = selectedDateKey ? (schedules[selectedDateKey] || []) : [];
+    const selectedDayIndex = selectedDate ? selectedDate.getDay() : null;
+    const selectedDateSlots = selectedDayIndex !== null ? (schedules[selectedDayIndex] || []) : [];
 
     return (
         <div className="space-y-6">
@@ -361,7 +376,7 @@ const VendorSessionManagement = () => {
                                     <p className="text-sm text-muted-foreground">Select a date to manage time slots.</p>
                                 </div>
                                 <div className="text-sm bg-blue-50 text-blue-700 px-3 py-1 rounded-full border border-blue-100">
-                                    {Object.keys(schedules).length} days configured
+                                    {Object.keys(schedules).length} days of week configured
                                 </div>
                             </div>
 
@@ -382,7 +397,7 @@ const VendorSessionManagement = () => {
                                         }}
                                         // Highlight days that have schedules
                                         modifiers={{
-                                            hasSchedule: (date) => !!schedules[format(date, 'yyyy-MM-dd')]
+                                            hasSchedule: (date) => !!schedules[date.getDay()]
                                         }}
                                         modifiersStyles={{
                                             hasSchedule: { fontWeight: 'bold', textDecoration: 'underline', color: '#dc2626' }
@@ -396,7 +411,7 @@ const VendorSessionManagement = () => {
                                         <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 transition-all duration-300 ease-in-out">
                                             <h4 className="font-semibold text-lg mb-4 flex items-center">
                                                 <Clock className="w-5 h-5 mr-2 text-gray-500" />
-                                                Slots for {format(selectedDate, 'MMMM do, yyyy')}
+                                                Slots for {format(selectedDate, 'EEEE')}s
                                             </h4>
 
                                             {/* Existing Slots for this day */}
@@ -410,7 +425,7 @@ const VendorSessionManagement = () => {
                                                                 variant="ghost"
                                                                 size="sm"
                                                                 className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                                                                onClick={() => handleRemoveSlot(selectedDateKey, idx)}
+                                                                onClick={() => handleRemoveSlot(selectedDayIndex, idx)}
                                                             >
                                                                 <Trash2 className="w-4 h-4" />
                                                             </Button>
