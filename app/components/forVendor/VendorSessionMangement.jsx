@@ -236,7 +236,6 @@ const VendorSessionManagement = () => {
                     day: representativeDate,
                     start_time: slot.start_time,
                     end_time: slot.end_time,
-                    duration_minutes: parseInt(duration_minutes), // Send duration
                     session_id: newSessionId
                 }));
             });

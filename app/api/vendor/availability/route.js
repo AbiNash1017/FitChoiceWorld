@@ -57,8 +57,11 @@ export async function POST(request) {
 
             scheduleMap[dayEnum].push({
                 start_time: slot.start_time, // e.g., "14:00"
+                // Assuming start_time_utc and end_time_utc are expected by schema or frontend later, 
+                // but schema has start_time/end_time as String. We'll stick to schema.
+                // If user example showed start_time_utc, we might need to change, but schema says start_time String.
+                // Waiting for user correction if needed, but schema in file view was start_time: String.
                 end_time: slot.end_time,
-                duration_minutes: slot.duration_minutes,
                 capacity: facility.capacity,
                 price: facility.price_per_slot,
                 instructor_id: facility.instructor_id,
