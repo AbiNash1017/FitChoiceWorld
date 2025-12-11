@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Calendar } from "@/components/ui/calendar"
+import TimePickerWheel from "@/components/ui/time-picker-wheel"
+import { cn } from "@/lib/utils"
 import { useFitnessCentre } from '@/app/context/FitnessCentreContext'
 import { useAuth } from '@/app/context/AuthContext'
 import { format } from 'date-fns'
@@ -78,7 +80,42 @@ const VendorSessionManagement = () => {
         });
     };
 
+    // --- Helper for Time Calculation ---
+    const calculateEndTime = (startTimeStr, durationMinutes) => {
+        if (!startTimeStr || !durationMinutes) return '';
+
+        // Parse "hh:mm AA"
+        const [time, period] = startTimeStr.split(' ');
+        if (!time || !period) return '';
+
+        let [hours, minutes] = time.split(':').map(Number);
+        if (period === 'PM' && hours !== 12) hours += 12;
+        if (period === 'AM' && hours === 12) hours = 0;
+
+        // Add duration
+        const totalMinutes = hours * 60 + minutes + parseInt(durationMinutes);
+
+        // Convert back
+        const endHours24 = Math.floor(totalMinutes / 60) % 24;
+        const endMinutes = totalMinutes % 60;
+
+        const periodNew = endHours24 >= 12 ? 'PM' : 'AM';
+        let displayHours = endHours24 % 12;
+        if (displayHours === 0) displayHours = 12;
+
+        return `${displayHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')} ${periodNew}`;
+    };
+
     // Schedule Handlers
+    const handleStartTimeChange = (newStartTime) => {
+        const updatedEndTime = calculateEndTime(newStartTime, newSession.duration_minutes);
+        setCurrentSlot(prev => ({
+            ...prev,
+            start_time: newStartTime,
+            end_time: updatedEndTime || prev.end_time // Auto-set end time if calculation possible
+        }));
+    };
+
     const handleAddSlot = () => {
         if (!currentSlot.start_time || !currentSlot.end_time || !selectedDate) {
             alert("Please select a start and end time.");
@@ -199,6 +236,7 @@ const VendorSessionManagement = () => {
                     day: representativeDate,
                     start_time: slot.start_time,
                     end_time: slot.end_time,
+                    duration_minutes: parseInt(duration_minutes), // Send duration
                     session_id: newSessionId
                 }));
             });
@@ -368,63 +406,118 @@ const VendorSessionManagement = () => {
                             )}
                         </div>
 
-                        {/* --- Advanced Calendar Schedule Section --- */}
+                        {/* --- Advanced Schedule Builder Section --- */}
                         <div className="space-y-4 pt-6 border-t font-sans">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <h3 className="text-xl font-semibold">Session Schedule</h3>
-                                    <p className="text-sm text-muted-foreground">Select a date to manage time slots.</p>
+                                    <p className="text-sm text-muted-foreground">Select a day and configure booking hours.</p>
                                 </div>
                                 <div className="text-sm bg-blue-50 text-blue-700 px-3 py-1 rounded-full border border-blue-100">
-                                    {Object.keys(schedules).length} days of week configured
+                                    {Object.keys(schedules).length} days configured
                                 </div>
                             </div>
 
-                            <div className="flex flex-col md:flex-row gap-8 items-start">
-                                {/* Calendar Column */}
-                                <div className="p-4 border rounded-lg bg-white shadow-sm flex-shrink-0 w-full md:w-auto flex justify-center">
-                                    <Calendar
-                                        mode="single"
-                                        selected={selectedDate}
-                                        onSelect={setSelectedDate}
-                                        className="rounded-md border p-3 pointer-events-auto"
-                                        classNames={{
-                                            day: "h-9 w-9 px-4 font-normal aria-selected:opacity-100 rounded-full transition-colors",
-                                            day_selected: "bg-red-600 text-white hover:bg-red-700 hover:text-white focus:bg-red-700 focus:text-white", // 👈 CHANGED THIS LINE
-                                            day_today: "bg-slate-100 text-slate-900",
-                                            head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
-                                            cell: "text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20 pl-3", // Increased pl-1 to pl-3 to shift dates right
-                                        }}
-                                        // Highlight days that have schedules
-                                        modifiers={{
-                                            hasSchedule: (date) => !!schedules[date.getDay()]
-                                        }}
-                                        modifiersStyles={{
-                                            hasSchedule: { fontWeight: 'bold', textDecoration: 'underline', color: '#dc2626' }
-                                        }}
-                                    />
+                            <div className="flex flex-col lg:flex-row gap-8 items-start">
+                                {/* Left Column: Scheduler Controls (Replaces Calendar) */}
+                                <div className="w-full lg:w-auto p-6 border rounded-2xl bg-white shadow-sm flex flex-col gap-6 items-center">
+
+                                    {/* Day Selector */}
+                                    <div className="w-full">
+                                        <Label className="text-sm font-semibold text-gray-700 mb-3 block text-center">Select Day</Label>
+                                        <div className="flex justify-between gap-2">
+                                            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, idx) => {
+                                                const isSelected = selectedDate && selectedDate.getDay() === idx;
+                                                const hasSchedule = schedules[idx] && schedules[idx].length > 0;
+                                                return (
+                                                    <button
+                                                        key={idx}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            // We need a date for this index. 
+                                                            // We can just use a dummy date or update 'selectedDate' to next occurrence.
+                                                            const today = new Date();
+                                                            const currentDay = today.getDay();
+                                                            const daysUntil = (idx - currentDay + 7) % 7;
+                                                            const nextDate = new Date(today);
+                                                            nextDate.setDate(today.getDate() + daysUntil);
+                                                            setSelectedDate(nextDate);
+                                                        }}
+                                                        className={cn(
+                                                            "w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all",
+                                                            isSelected
+                                                                ? "bg-black text-white scale-110 shadow-md"
+                                                                : "bg-gray-100 text-gray-500 hover:bg-gray-200",
+                                                            hasSchedule && !isSelected && "ring-2 ring-red-500 ring-offset-1 text-red-600 bg-red-50"
+                                                        )}
+                                                    >
+                                                        {day}
+                                                    </button>
+                                                )
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    <div className="w-full flex justify-center gap-6">
+                                        {/* Start Time */}
+                                        <div className="flex flex-col items-center gap-2">
+                                            <Label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Start Time</Label>
+                                            <TimePickerWheel
+                                                value={currentSlot.start_time}
+                                                onChange={handleStartTimeChange}
+                                            />
+                                        </div>
+
+                                        {/* End Time */}
+                                        <div className="flex flex-col items-center gap-2">
+                                            <Label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">End Time</Label>
+                                            <TimePickerWheel
+                                                value={currentSlot.end_time}
+                                                onChange={(v) => setCurrentSlot(prev => ({ ...prev, end_time: v }))}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <Button
+                                        type="button"
+                                        onClick={handleAddSlot}
+                                        className="w-full bg-black hover:bg-gray-800 text-white h-12 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 text-md font-medium"
+                                    >
+                                        <Plus className="h-5 w-5" />
+                                        <span>Add Time Slot</span>
+                                    </Button>
+
                                 </div>
 
-                                {/* Slots Column */}
+                                {/* Right Column: Existing Slots List */}
                                 <div className="flex-1 w-full space-y-4">
                                     {selectedDate ? (
-                                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 transition-all duration-300 ease-in-out">
-                                            <h4 className="font-semibold text-lg mb-4 flex items-center">
-                                                <Clock className="w-5 h-5 mr-2 text-gray-500" />
-                                                Slots for {format(selectedDate, 'EEEE')}s
+                                        <div className="bg-gray-50 p-6 rounded-2xl border border-gray-200 transition-all duration-300 min-h-[400px]">
+                                            <h4 className="font-semibold text-lg mb-4 flex items-center text-gray-800">
+                                                <div className="bg-white p-2 rounded-lg shadow-sm mr-3">
+                                                    <Clock className="w-5 h-5 text-red-500" />
+                                                </div>
+                                                {format(selectedDate, 'EEEE')} Schedule
                                             </h4>
 
                                             {/* Existing Slots for this day */}
                                             {selectedDateSlots.length > 0 ? (
-                                                <div className="space-y-2 mb-6">
+                                                <div className="space-y-3">
                                                     {selectedDateSlots.map((slot, idx) => (
-                                                        <div key={idx} className="flex items-center justify-between bg-white p-3 rounded border shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
-                                                            <span className="font-medium text-gray-700">{slot.start_time} - {slot.end_time}</span>
+                                                        <div key={idx} className="group flex items-center justify-between bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all">
+                                                            <div className='flex items-center gap-3'>
+                                                                <div className='w-2 h-2 rounded-full bg-green-500'></div>
+                                                                <span className="font-bold text-gray-700 text-lg tracking-tight">
+                                                                    {slot.start_time}
+                                                                    <span className='text-gray-300 mx-2 font-normal'>—</span>
+                                                                    {slot.end_time}
+                                                                </span>
+                                                            </div>
                                                             <Button
                                                                 type="button"
                                                                 variant="ghost"
-                                                                size="sm"
-                                                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                                size="icon"
+                                                                className="text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                                                                 onClick={() => handleRemoveSlot(selectedDayIndex, idx)}
                                                             >
                                                                 <Trash2 className="w-4 h-4" />
@@ -433,48 +526,16 @@ const VendorSessionManagement = () => {
                                                     ))}
                                                 </div>
                                             ) : (
-                                                <p className="text-sm text-gray-500 italic mb-6">No slots added for this date yet.</p>
-                                            )}
-
-                                            {/* Add New Slot Inputs */}
-                                            {/* Add New Slot Inputs - Redesign */}
-                                            <div className="mt-6 pt-4 border-t border-gray-100">
-                                                <Label className="text-sm font-medium text-gray-700 mb-3 block">Add New Time Slot</Label>
-                                                <div className="bg-white p-3 rounded-md border border-gray-200 shadow-sm flex items-center gap-3">
-                                                    <div className="grid grid-cols-2 gap-3 flex-1">
-                                                        <div className="relative">
-                                                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-medium">From</span>
-                                                            <Input
-                                                                type="time"
-                                                                value={currentSlot.start_time}
-                                                                onChange={(e) => setCurrentSlot({ ...currentSlot, start_time: e.target.value })}
-                                                                className="pl-12 text-center font-medium bg-gray-50 focus:bg-white transition-colors h-10 border-gray-200"
-                                                            />
-                                                        </div>
-                                                        <div className="relative">
-                                                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-medium">To</span>
-                                                            <Input
-                                                                type="time"
-                                                                value={currentSlot.end_time}
-                                                                onChange={(e) => setCurrentSlot({ ...currentSlot, end_time: e.target.value })}
-                                                                className="pl-8 text-center font-medium bg-gray-50 focus:bg-white transition-colors h-10 border-gray-200"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                    <Button
-                                                        type="button"
-                                                        onClick={handleAddSlot}
-                                                        className="bg-black hover:bg-gray-800 text-white h-10 px-4 shadow-sm transition-all flex items-center gap-2"
-                                                    >
-                                                        <Plus className="h-4 w-4" />
-                                                        <span>Add</span>
-                                                    </Button>
+                                                <div className="flex flex-col items-center justify-center h-64 text-gray-400 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50/50">
+                                                    <Clock className="w-12 h-12 mb-2 opacity-20" />
+                                                    <p className="text-sm font-medium">No slots added yet</p>
+                                                    <p className="text-xs opacity-60">Use the wheels to add booking hours</p>
                                                 </div>
-                                            </div>
+                                            )}
                                         </div>
                                     ) : (
                                         <div className="flex items-center justify-center h-full text-gray-400 border-2 border-dashed rounded-lg p-8">
-                                            Select a date to configure slots
+                                            Select a day to configure
                                         </div>
                                     )}
                                 </div>
