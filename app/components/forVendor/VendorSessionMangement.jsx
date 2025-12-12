@@ -1,6 +1,6 @@
 'use client'
 
-import { useState,useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, X, Trash2, Clock, Loader2 } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -420,25 +420,25 @@ const VendorSessionManagement = () => {
                             {/* Duration */}
                             <div className="space-y-2">
                                 <Label htmlFor="duration_minutes">Duration (minutes) <span className='text-red-600'>*</span></Label>
-                                <Input id="duration_minutes" name="duration_minutes" type="number" min="15" required value={newSession.duration_minutes} onChange={handleInputChange} />
+                                <Input id="duration_minutes" name="duration_minutes" type="number" min="15" required value={newSession.duration_minutes} onChange={handleInputChange} onWheel={(e) => e.target.blur()} />
                             </div>
 
                             {/* Min Slots */}
                             <div className="space-y-2">
                                 <Label htmlFor="min_no_of_slots">Min Slots <span className='text-red-600'>*</span></Label>
-                                <Input id="min_no_of_slots" name="min_no_of_slots" type="number" min="1" required value={newSession.min_no_of_slots} onChange={handleInputChange} />
+                                <Input id="min_no_of_slots" name="min_no_of_slots" type="number" min="1" required value={newSession.min_no_of_slots} onChange={handleInputChange} onWheel={(e) => e.target.blur()} />
                             </div>
 
                             {/* Price */}
                             <div className="space-y-2">
                                 <Label htmlFor="per_session_price">Price per Session <span className='text-red-600'>*</span></Label>
-                                <Input id="per_session_price" name="per_session_price" type="number" min="0" required value={newSession.per_session_price} onChange={handleInputChange} />
+                                <Input id="per_session_price" name="per_session_price" type="number" min="0" required value={newSession.per_session_price} onChange={handleInputChange} onWheel={(e) => e.target.blur()} />
                             </div>
 
                             {/* Couple Price */}
                             <div className="space-y-2">
                                 <Label htmlFor="couple_session_price">Couples Price (Optional)</Label>
-                                <Input id="couple_session_price" name="couple_session_price" type="number" min="0" value={newSession.couple_session_price} onChange={handleInputChange} />
+                                <Input id="couple_session_price" name="couple_session_price" type="number" min="0" value={newSession.couple_session_price} onChange={handleInputChange} onWheel={(e) => e.target.blur()} />
                             </div>
 
                             {/* Requires Booking Checkbox */}
@@ -460,12 +460,12 @@ const VendorSessionManagement = () => {
                             <h3 className="col-span-full font-semibold text-gray-700">Booking Rules</h3>
                             <div className="space-y-2">
                                 <Label htmlFor="max_advance_booking_days" className="text-sm text-gray-600">Max Advance Booking (Days)</Label>
-                                <Input id="max_advance_booking_days" name="max_advance_booking_days" type="number" min="1" value={newSession.max_advance_booking_days} onChange={handleInputChange} className="bg-white" />
+                                <Input id="max_advance_booking_days" name="max_advance_booking_days" type="number" min="1" value={newSession.max_advance_booking_days} onChange={handleInputChange} className="bg-white" onWheel={(e) => e.target.blur()} />
                             </div>
 
                             <div className="space-y-2">
                                 <Label htmlFor="min_advance_booking_hours" className="text-sm text-gray-600">Min Advance Booking (Hours)</Label>
-                                <Input id="min_advance_booking_hours" name="min_advance_booking_hours" type="number" min="0" value={newSession.min_advance_booking_hours} onChange={handleInputChange} className="bg-white" />
+                                <Input id="min_advance_booking_hours" name="min_advance_booking_hours" type="number" min="0" value={newSession.min_advance_booking_hours} onChange={handleInputChange} className="bg-white" onWheel={(e) => e.target.blur()} />
                             </div>
                         </div>
 
