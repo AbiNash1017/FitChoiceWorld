@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState,useEffect } from 'react'
 import { Plus, X, Trash2, Clock, Loader2 } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -148,6 +148,95 @@ const VendorSessionManagement = () => {
         }
     };
 
+    const [sessionId, setSessionId] = useState(null); // Track if editing existing session
+
+    const fetchSessionByType = async (type) => {
+        if (!type || !fitnessCentreId || !user) return;
+
+        try {
+            const token = await user.getIdToken();
+            const res = await fetch(`/api/vendor/session?type=${type}&fitness_center_id=${fitnessCentreId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                const session = data.data;
+                console.log("Fetched existing session:", session);
+
+                setSessionId(session._id);
+
+                // Populate Form
+                setNewSession({
+                    type: session.type, // Should match
+                    name: session.name,
+                    description: session.description || '',
+                    duration_minutes: session.duration_minutes || '',
+                    min_no_of_slots: session.min_no_of_slots || '',
+                    max_advance_booking_days: session.max_advance_booking_days || 30,
+                    min_advance_booking_hours: session.min_advance_booking_hours || 2,
+                    instructor_name: session.instructor_name || '',
+                    requires_booking: session.requires_booking,
+                    equipment: session.equipment || [],
+                    per_session_price: session.price_per_slot || '',
+                    couple_session_price: session.couple_session_price || '', // If schema has it? Check schema.
+                });
+
+                // Populate Schedule
+                // Backend returns: schedule: { schedules: [{ day: 'DAY_OF_WEEK_...', time_slots: [...] }] }
+                if (session.schedule && session.schedule.schedules) {
+                    const daysEnum = [
+                        'DAY_OF_WEEK_SUNDAY', 'DAY_OF_WEEK_MONDAY', 'DAY_OF_WEEK_TUESDAY',
+                        'DAY_OF_WEEK_WEDNESDAY', 'DAY_OF_WEEK_THURSDAY', 'DAY_OF_WEEK_FRIDAY',
+                        'DAY_OF_WEEK_SATURDAY'
+                    ];
+
+                    const loadedSchedules = {};
+                    session.schedule.schedules.forEach(daySch => {
+                        const dayIndex = daysEnum.indexOf(daySch.day);
+                        if (dayIndex !== -1 && daySch.time_slots) {
+                            loadedSchedules[dayIndex] = daySch.time_slots.map(slot => ({
+                                start_time: slot.start_time,
+                                end_time: slot.end_time
+                            }));
+                        }
+                    });
+                    setSchedules(loadedSchedules);
+                } else {
+                    setSchedules({});
+                }
+            } else {
+                // Not found or error -> Reset to "New" mode
+                setSessionId(null);
+                // We keep the Type, but maybe reset other fields?
+                // For better UX, if switching types, clear fields.
+                // But careful not to clear if user just typed 'ZUMBA' and form was filling.
+                // We typically reset when type changes to something NEW.
+                // Let's reset the dynamic fields but keep generic defaults if needed.
+                // Or just leave it? User might want to carry over values?
+                // "fetch info... then i can edit in it".
+                // If I change to "GYM" and it doesn't exist, I expect a fresh form.
+                if (res.status === 404) {
+                    setNewSession(prev => ({
+                        ...prev,
+                        name: '', description: '', duration_minutes: '', min_no_of_slots: '',
+                        equipment: [], per_session_price: '', couple_session_price: ''
+                    }));
+                    setSchedules({});
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching session:", error);
+        }
+    };
+
+    // Trigger fetch when Type changes
+    useEffect(() => {
+        if (newSession.type) {
+            fetchSessionByType(newSession.type);
+        }
+    }, [newSession.type]);
+
     const addSession = async (e) => {
         e.preventDefault();
 
@@ -173,8 +262,9 @@ const VendorSessionManagement = () => {
         setIsSaving(true);
         const token = await user.getIdToken();
 
-        // 1. Create Session Payload
+        // 1. Create/Update Session Payload
         const sessionPayload = {
+            session_id: sessionId, // Include ID if updating
             type,
             name,
             description,
@@ -185,15 +275,18 @@ const VendorSessionManagement = () => {
             min_no_of_slots: parseInt(min_no_of_slots),
             max_advance_booking_days: parseInt(max_advance_booking_days || 30),
             min_advance_booking_hours: parseInt(min_advance_booking_hours || 2),
-            per_session_price: parseFloat(per_session_price),
+            price_per_slot: parseFloat(per_session_price),
             couple_session_price: parseFloat(couple_session_price || 0),
             fitness_center_id: fitnessCentreId
         };
 
         try {
-            // Step 1: Create Session
-            const sessionResponse = await fetch(`/api/vendor/session`, {
-                method: 'POST',
+            // Step 1: Create or Update Session
+            const method = sessionId ? 'PUT' : 'POST';
+            const endpoint = `/api/vendor/session`; // Same endpoint
+
+            const sessionResponse = await fetch(endpoint, {
+                method: method,
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`,
@@ -203,28 +296,31 @@ const VendorSessionManagement = () => {
 
             const sessionData = await sessionResponse.json();
 
-            if (!sessionResponse.ok || (sessionData.message !== 'OK' && !sessionData._id && !sessionData.id && !sessionData.data)) {
-                throw new Error(sessionData.message || sessionData.error || 'Failed to create session');
+            if (!sessionResponse.ok) {
+                // Check for conflict 
+                if (sessionResponse.status === 409 && sessionData.existing_id) {
+                    // Should have been handled by fetch-on-type, but just in case:
+                    alert("A session of this type already exists. Please refresh or select the type again to edit it.");
+                    setIsSaving(false);
+                    return;
+                }
+                throw new Error(sessionData.message || sessionData.error || 'Failed to save session');
             }
 
-            const newSessionId = sessionData._id || sessionData.id || sessionData.data?._id;
+            const activeSessionId = sessionId || sessionData._id || sessionData.data?._id;
 
-            if (!newSessionId) {
-                throw new Error('Session created but no ID returned. Cannot add schedule.');
+            if (!activeSessionId) {
+                throw new Error('Session saved but no ID returned.');
             }
 
-            // Step 2: Transform Schedules for API
-            // The API interprets 'day' to extract the DAY_OF_WEEK.
-            // We map our generic day indices (0-6) to a representative date string (e.g., the next upcoming occurrence)
-            // so the backend can correctly extract the weekday.
+            if (!sessionId) setSessionId(activeSessionId); // Switch to edit mode after first save
 
+            // Step 2: Update Schedule
             const getRepresentativeDate = (dayIndexStr) => {
                 const dayIndex = parseInt(dayIndexStr);
                 const today = new Date();
                 const currentDay = today.getDay(); // 0-6
                 let daysUntil = (dayIndex - currentDay + 7) % 7;
-                // We use 'daysUntil' to find the next date corresponding to this dayIndex.
-                // It doesn't matter WHICH date it is, as long as it's the correct day of the week.
                 const nextDate = new Date(today);
                 nextDate.setDate(today.getDate() + daysUntil);
                 return format(nextDate, 'yyyy-MM-dd');
@@ -236,7 +332,7 @@ const VendorSessionManagement = () => {
                     day: representativeDate,
                     start_time: slot.start_time,
                     end_time: slot.end_time,
-                    session_id: newSessionId
+                    session_id: activeSessionId
                 }));
             });
 
@@ -256,17 +352,20 @@ const VendorSessionManagement = () => {
             const availabilityResData = await availabilityResponse.json();
 
             if (availabilityResponse.ok) {
-                alert('Session and Schedule added successfully!');
-                // Reset Form
-                setNewSession({
-                    type: '', name: '', description: '', duration_minutes: '', min_no_of_slots: '',
-                    max_advance_booking_days: 30, min_advance_booking_hours: 2, instructor_name: '',
-                    requires_booking: true, equipment: [], per_session_price: '', couple_session_price: '',
-                });
-                setSchedules({});
-                setEquipmentInput('');
+                alert(sessionId ? 'Session updated successfully!' : 'Session created successfully!');
+                // Do NOT reset form if editing
+                // Actually, user might want to create another?
+                // But usually in "Edit" mode, we stay on the page.
+                // "i can edit in it and the same document should egt edit"
+                // So we stay.
+
+                // If it was a NEW creation, do we reset? 
+                // Maybe not, so they can keep refining?
+                // Or reset to allow creating a different type?
+                // Let's NOT reset if we are now in edit mode (which we are).
+
             } else {
-                alert(`Session created, but failed to add schedule: ${availabilityResData.message}`);
+                alert(`Session saved, but failed to update schedule: ${availabilityResData.message}`);
             }
 
         } catch (error) {
