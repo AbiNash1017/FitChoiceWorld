@@ -33,14 +33,14 @@ export async function POST(request) {
             location: {
                 type: 'Point',
                 coordinates: [longitude, latitude], // GeoJSON expects [longitude, latitude]
+                address: body.address,
+                city: body.city,
+                state: body.state,
+                postal_code: body.pincode,
+                country: 'India', // Defaulting to India as per context
             },
-            address: body.address,
-            city: body.city,
-            state: body.state,
-            postal_code: body.pincode,
             phone_number: body.contact_no,
             subscription_plan_id: body.plan_id,
-            country: 'India', // Defaulting to India as per context
             is_active: true,
         });
 

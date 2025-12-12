@@ -14,14 +14,24 @@ export async function POST(req) {
         let user = await User.findOne({ uid });
 
         if (!user) {
+            const username = `fcw-${uid.slice(-10)}`;
             user = await User.create({
                 uid,
+                username,
                 phone_number: phoneNumber,
             });
         } else {
             // Update existing user if needed
+            let isUpdated = false;
             if (user.phone_number !== phoneNumber) {
                 user.phone_number = phoneNumber;
+                isUpdated = true;
+            }
+            if (!user.username) {
+                user.username = `fcw-${uid.slice(-10)}`;
+                isUpdated = true;
+            }
+            if (isUpdated) {
                 await user.save();
             }
         }
