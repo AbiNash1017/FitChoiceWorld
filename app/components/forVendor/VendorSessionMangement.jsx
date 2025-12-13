@@ -518,7 +518,18 @@ const VendorSessionManagement = () => {
 
                             <div className="flex flex-col lg:flex-row gap-8 items-start">
                                 {/* Left Column: Scheduler Controls (Replaces Calendar) */}
-                                <div className="w-full lg:w-auto p-6 border rounded-2xl bg-white shadow-sm flex flex-col gap-6 items-center">
+                                <div className={cn(
+                                    "w-full lg:w-auto p-6 border rounded-2xl bg-white shadow-sm flex flex-col gap-6 items-center transition-opacity duration-200",
+                                    !newSession.duration_minutes && "opacity-50 pointer-events-none select-none grayscale"
+                                )}>
+
+                                    {/* Duration Warning Overlay - effectively handled by layout but we can add a message above if needed, 
+                                        for now just the Disabled state is clear enough visually, but let's add a small text if disabled */}
+                                    {!newSession.duration_minutes && (
+                                        <div className="absolute z-10 bg-black/80 text-white px-4 py-2 rounded-full text-xs font-medium -mt-12">
+                                            Set Duration first
+                                        </div>
+                                    )}
 
                                     {/* Day Selector */}
                                     <div className="w-full">
