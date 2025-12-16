@@ -417,11 +417,7 @@ const VendorSessionManagement = () => {
                                 <Input id="instructor_name" name="instructor_name" required value={newSession.instructor_name} onChange={handleInputChange} />
                             </div>
 
-                            {/* Duration */}
-                            <div className="space-y-2">
-                                <Label htmlFor="duration_minutes">Duration (minutes) <span className='text-red-600'>*</span></Label>
-                                <Input id="duration_minutes" name="duration_minutes" type="number" min="15" required value={newSession.duration_minutes} onChange={handleInputChange} onWheel={(e) => e.target.blur()} />
-                            </div>
+
 
                             {/* Min Slots */}
                             <div className="space-y-2">
@@ -518,21 +514,35 @@ const VendorSessionManagement = () => {
 
                             <div className="flex flex-col lg:flex-row gap-8 items-start">
                                 {/* Left Column: Scheduler Controls (Replaces Calendar) */}
-                                <div className={cn(
-                                    "w-full lg:w-auto p-6 border rounded-2xl bg-white shadow-sm flex flex-col gap-6 items-center transition-opacity duration-200",
-                                    !newSession.duration_minutes && "opacity-50 pointer-events-none select-none grayscale"
-                                )}>
+                                <div className="w-full lg:w-auto p-6 border rounded-2xl bg-white shadow-sm flex flex-col gap-6 items-center">
 
-                                    {/* Duration Warning Overlay - effectively handled by layout but we can add a message above if needed, 
-                                        for now just the Disabled state is clear enough visually, but let's add a small text if disabled */}
-                                    {!newSession.duration_minutes && (
-                                        <div className="absolute z-10 bg-black/80 text-white px-4 py-2 rounded-full text-xs font-medium -mt-12">
-                                            Set Duration first
-                                        </div>
-                                    )}
+                                    {/* Duration Input (Moved Here) */}
+                                    <div className="w-full space-y-2">
+                                        <Label htmlFor="duration_minutes" className="text-sm font-semibold text-gray-700">
+                                            Duration (minutes) <span className='text-red-600'>*</span>
+                                        </Label>
+                                        <Input
+                                            id="duration_minutes"
+                                            name="duration_minutes"
+                                            type="number"
+                                            min="15"
+                                            placeholder="Enter duration first"
+                                            required
+                                            value={newSession.duration_minutes}
+                                            onChange={handleInputChange}
+                                            onWheel={(e) => e.target.blur()}
+                                            className={cn(
+                                                "bg-white border-gray-200 focus:border-black transition-all",
+                                                !newSession.duration_minutes && "ring-2 ring-red-100 border-red-200"
+                                            )}
+                                        />
+                                    </div>
 
                                     {/* Day Selector */}
-                                    <div className="w-full">
+                                    <div className={cn(
+                                        "w-full transition-all duration-200",
+                                        !newSession.duration_minutes && "opacity-50 pointer-events-none grayscale"
+                                    )}>
                                         <Label className="text-sm font-semibold text-gray-700 mb-3 block text-center">Select Day</Label>
                                         <div className="flex justify-between gap-2">
                                             {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, idx) => {
@@ -543,8 +553,6 @@ const VendorSessionManagement = () => {
                                                         key={idx}
                                                         type="button"
                                                         onClick={() => {
-                                                            // We need a date for this index. 
-                                                            // We can just use a dummy date or update 'selectedDate' to next occurrence.
                                                             const today = new Date();
                                                             const currentDay = today.getDay();
                                                             const daysUntil = (idx - currentDay + 7) % 7;
@@ -567,7 +575,10 @@ const VendorSessionManagement = () => {
                                         </div>
                                     </div>
 
-                                    <div className="w-full flex justify-center gap-6">
+                                    <div className={cn(
+                                        "w-full flex justify-center gap-6 transition-all duration-200",
+                                        !newSession.duration_minutes && "opacity-50 pointer-events-none grayscale"
+                                    )}>
                                         {/* Start Time */}
                                         <div className="flex flex-col items-center gap-2">
                                             <Label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Start Time</Label>
@@ -577,12 +588,12 @@ const VendorSessionManagement = () => {
                                             />
                                         </div>
 
-                                        {/* End Time */}
-                                        <div className="flex flex-col items-center gap-2">
+                                        {/* End Time (Disabled) */}
+                                        <div className="flex flex-col items-center gap-2 pointer-events-none opacity-70">
                                             <Label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">End Time</Label>
                                             <TimePickerWheel
                                                 value={currentSlot.end_time}
-                                                onChange={(v) => setCurrentSlot(prev => ({ ...prev, end_time: v }))}
+                                                onChange={() => { }} // No-op
                                             />
                                         </div>
                                     </div>
@@ -590,7 +601,11 @@ const VendorSessionManagement = () => {
                                     <Button
                                         type="button"
                                         onClick={handleAddSlot}
-                                        className="w-full bg-black hover:bg-gray-800 text-white h-12 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 text-md font-medium"
+                                        disabled={!newSession.duration_minutes}
+                                        className={cn(
+                                            "w-full bg-black hover:bg-gray-800 text-white h-12 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 text-md font-medium",
+                                            !newSession.duration_minutes && "opacity-50 cursor-not-allowed bg-gray-400"
+                                        )}
                                     >
                                         <Plus className="h-5 w-5" />
                                         <span>Add Time Slot</span>
