@@ -4,6 +4,7 @@ import { adminAuth } from '@/lib/firebaseAdmin'
 import { NextResponse } from 'next/server'
 import dbConnect from '@/lib/db'
 import User from '@/lib/models/User'
+import CenterAdminMetadata from '@/lib/models/CenterAdminMetadata'
 
 export async function POST(request) {
     try {
@@ -55,6 +56,23 @@ export async function POST(request) {
                 updated_at: new Date(),
             },
             { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
+        )
+
+        // Sync user data to center_admin_metadata
+        await CenterAdminMetadata.findOneAndUpdate(
+            { uid: uid },
+            {
+                uid: uid,
+                username: updatedUser.username,
+                first_name: first_name,
+                last_name: last_name,
+                gender: gender,
+                admin_phone_number: mobile_no,
+                admin_email: updatedUser.email || null,
+                profile_image_url: updatedUser.profile_image_url || null,
+                updated_at: new Date(),
+            },
+            { new: true, upsert: true, runValidators: true }
         )
 
         return NextResponse.json({

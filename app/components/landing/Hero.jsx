@@ -25,15 +25,15 @@ const Hero = () => {
                 <div className="absolute inset-0 flex flex-col items-center justify-between pt-36 pb-8 px-4 sm:px-6 lg:px-8">
                     <div className="flex-grow flex items-center justify-center">
                         <div className="text-center max-w-3xl">
-                            <h1 className="mb-6 text-3xl font-bold leading-tight text-white sm:text-4xl md:text-5xl lg:text-6xl">
+                            <h1 className="mb-6 text-3xl font-bold leading-tight text-white sm:text-4xl md:text-5xl lg:text-6xl tracking-tight">
                                 BOOK WORKOUTS.
                                 <br />
-                                <span className="text-red-700">FIND MATCHES.</span>
+                                <span className="text-gray-300">FIND MATCHES.</span>
                                 <br />
                                 SWEAT TOGETHER.
                             </h1>
                             <Link
-                                className="inline-block text-xl sm:text-2xl text-white px-5 py-3 font-semibold tracking-wide rounded-md bg-black/60 border-2 border-red-800 hover:bg-red-800/70 transition-colors duration-300"
+                                className="inline-block text-xl sm:text-2xl text-black px-8 py-4 font-bold tracking-wide rounded-full bg-white hover:bg-gray-100 transition-all duration-300 transform hover:scale-105"
                                 href="/login"
                             >
                                 Get Started
@@ -42,8 +42,8 @@ const Hero = () => {
                     </div>
 
                     <div className="text-center mt-8">
-                        <p className="text-white text-md sm:text-lg mb-4">
-                            Are you a fitness center? Click <Link href={"/fitnesscenter"} className="text-red-500 hover:underline">here</Link> to explore more
+                        <p className="text-white text-md sm:text-lg mb-4 font-medium">
+                            Are you a fitness center? Click <Link href={"/fitnesscenter"} className="text-white underline hover:text-gray-300 transition-colors">here</Link> to explore more
                         </p>
                     </div>
                 </div>

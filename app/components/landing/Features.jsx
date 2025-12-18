@@ -30,15 +30,15 @@ export default function Features() {
     ]
 
     return (
-        <section className="bg-black pt-20 pb-12 px-4">
+        <section className="bg-[var(--landing-bg-primary)] pt-20 pb-12 px-4">
             <div className="container mx-auto max-w-7xl">
                 <div
                     className="text-center mb-12">
                     <div className="text-3xl md:text-[43px] font-bold mb-4">
-                        <span className="text-white">WHAT MAKES US </span>
-                        <span className="text-red-700">DIFFERENT</span>
+                        <span className="text-[var(--landing-text-primary)]">WHAT MAKES US </span>
+                        <span className="text-[var(--landing-text-primary)]">DIFFERENT</span>
                     </div>
-                    <p className="text-gray-400 max-w-2xl mx-auto text-lg">
+                    <p className="text-[var(--landing-text-secondary)] max-w-2xl mx-auto text-lg">
                         Why Fit Choice World is the right choice for you
                     </p>
                 </div>
@@ -47,16 +47,16 @@ export default function Features() {
                     {features.map((feature, index) => (
                         <div
                             key={feature.title}
-                            className="border border-red-700 p-6 relative hover:scale-105 transform transition-all duration-300"
+                            className="border border-[var(--landing-border)] p-6 relative hover:scale-105 transform transition-all duration-300 rounded-[2rem] hover:shadow-2xl"
                         >
                             {/* class="p-6 bg-gray-200 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:scale-105 hover:shadow-xl transform transition-all duration-300" */}
                             <div className="mb-4">
-                                <feature.icon className='text-white' />
+                                <feature.icon className='text-[var(--landing-text-primary)]' />
                             </div>
-                            <h3 className="text-[23px] font-bold text-red-700 mb-3">
+                            <h3 className="text-[23px] font-bold text-[var(--landing-text-primary)] mb-3">
                                 {feature.title}
                             </h3>
-                            <p className="text-gray-300">
+                            <p className="text-[var(--landing-text-secondary)]">
                                 {feature.description}
                             </p>
                         </div>

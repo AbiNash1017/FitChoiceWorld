@@ -392,7 +392,7 @@ const VendorSessionManagement = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {/* Facility Type */}
                             <div className="space-y-2">
-                                <Label htmlFor="type">Facility Type <span className='text-red-600'>*</span></Label>
+                                <Label htmlFor="type">Facility Type <span className='text-black'>*</span></Label>
                                 <Select name="type" value={newSession.type} onValueChange={(value) => setNewSession({ ...newSession, type: value })}>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select type" />
@@ -407,13 +407,13 @@ const VendorSessionManagement = () => {
 
                             {/* Session Name */}
                             <div className="space-y-2">
-                                <Label htmlFor="name">Session Name <span className='text-red-600'>*</span></Label>
+                                <Label htmlFor="name">Session Name <span className='text-black'>*</span></Label>
                                 <Input id="name" name="name" placeholder="e.g. Morning Zumba" required value={newSession.name} onChange={handleInputChange} />
                             </div>
 
                             {/* Instructor Name */}
                             <div className="space-y-2">
-                                <Label htmlFor="instructor_name">Instructor Name <span className='text-red-600'>*</span></Label>
+                                <Label htmlFor="instructor_name">Instructor Name <span className='text-black'>*</span></Label>
                                 <Input id="instructor_name" name="instructor_name" required value={newSession.instructor_name} onChange={handleInputChange} />
                             </div>
 
@@ -421,13 +421,13 @@ const VendorSessionManagement = () => {
 
                             {/* Min Slots */}
                             <div className="space-y-2">
-                                <Label htmlFor="min_no_of_slots">Min Slots <span className='text-red-600'>*</span></Label>
+                                <Label htmlFor="min_no_of_slots">Min Slots <span className='text-black'>*</span></Label>
                                 <Input id="min_no_of_slots" name="min_no_of_slots" type="number" min="1" required value={newSession.min_no_of_slots} onChange={handleInputChange} onWheel={(e) => e.target.blur()} />
                             </div>
 
                             {/* Price */}
                             <div className="space-y-2">
-                                <Label htmlFor="per_session_price">Price per Session <span className='text-red-600'>*</span></Label>
+                                <Label htmlFor="per_session_price">Price per Session <span className='text-black'>*</span></Label>
                                 <Input id="per_session_price" name="per_session_price" type="number" min="0" required value={newSession.per_session_price} onChange={handleInputChange} onWheel={(e) => e.target.blur()} />
                             </div>
 
@@ -467,7 +467,7 @@ const VendorSessionManagement = () => {
 
                         {/* Description */}
                         <div className="space-y-2">
-                            <Label htmlFor="description">Description <span className='text-red-600'>*</span></Label>
+                            <Label htmlFor="description">Description <span className='text-black'>*</span></Label>
                             <Textarea id="description" name="description" required value={newSession.description} onChange={handleInputChange} />
                         </div>
 
@@ -519,7 +519,7 @@ const VendorSessionManagement = () => {
                                     {/* Duration Input (Moved Here) */}
                                     <div className="w-full space-y-2">
                                         <Label htmlFor="duration_minutes" className="text-sm font-semibold text-gray-700">
-                                            Duration (minutes) <span className='text-red-600'>*</span>
+                                            Duration (minutes) <span className='text-black'>*</span>
                                         </Label>
                                         <Input
                                             id="duration_minutes"
@@ -565,7 +565,7 @@ const VendorSessionManagement = () => {
                                                             isSelected
                                                                 ? "bg-black text-white scale-110 shadow-md"
                                                                 : "bg-gray-100 text-gray-500 hover:bg-gray-200",
-                                                            hasSchedule && !isSelected && "ring-2 ring-red-500 ring-offset-1 text-red-600 bg-red-50"
+                                                            hasSchedule && !isSelected && "ring-2 ring-black ring-offset-1 text-black bg-gray-100"
                                                         )}
                                                     >
                                                         {day}
@@ -619,7 +619,7 @@ const VendorSessionManagement = () => {
                                         <div className="bg-gray-50 p-6 rounded-2xl border border-gray-200 transition-all duration-300 min-h-[400px]">
                                             <h4 className="font-semibold text-lg mb-4 flex items-center text-gray-800">
                                                 <div className="bg-white p-2 rounded-lg shadow-sm mr-3">
-                                                    <Clock className="w-5 h-5 text-red-500" />
+                                                    <Clock className="w-5 h-5 text-black" />
                                                 </div>
                                                 {format(selectedDate, 'EEEE')} Schedule
                                             </h4>
@@ -666,7 +666,7 @@ const VendorSessionManagement = () => {
                             </div>
                         </div>
 
-                        <Button type="submit" disabled={isSaving} className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-6 text-lg mt-8 disabled:bg-red-400">
+                        <Button type="submit" disabled={isSaving} className="w-full bg-black hover:bg-gray-800 text-white font-semibold py-6 text-lg mt-8 disabled:bg-gray-400 shadow-lg">
                             {isSaving ? (
                                 <>
                                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />

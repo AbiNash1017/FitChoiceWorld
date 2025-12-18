@@ -24,7 +24,8 @@ const VendorProfileManagement = () => {
         location_id: '',
         centre_images: [],
         google_maps_link: '',
-        contact_no: 0
+        contact_no: 0,
+        amenities: []
     });
     const [location, setLocation] = useState({
         id: '',
@@ -94,7 +95,8 @@ const VendorProfileManagement = () => {
                     owner_id: data.fitnessCenter.owner_id || '',
                     centre_images: data.fitnessCenter.image_urls || [],
                     google_maps_link: '', // Not in schema
-                    contact_no: data.fitnessCenter.phone_number || ''
+                    contact_no: data.fitnessCenter.phone_number || '',
+                    amenities: data.fitnessCenter.amenities || []
                 });
 
                 setLocation({
@@ -267,7 +269,7 @@ const VendorProfileManagement = () => {
             <Card className="border-gray-200">
                 <CardHeader className="border-b bg-gray-50/50">
                     <CardTitle className="flex items-center gap-2 text-xl">
-                        <User className="w-5 h-5 text-red-600" />
+                        <User className="w-5 h-5 text-black" />
                         User Profile
                     </CardTitle>
                 </CardHeader>
@@ -316,7 +318,7 @@ const VendorProfileManagement = () => {
                                             type="button"
                                             size="sm"
                                             onClick={handleUpdateUserProfile}
-                                            className="bg-red-600 hover:bg-red-700"
+                                            className="bg-black hover:bg-gray-800 text-white"
                                         >
                                             Save
                                         </Button>
@@ -388,7 +390,7 @@ const VendorProfileManagement = () => {
             <Card className="border-gray-200">
                 <CardHeader className="border-b bg-gray-50/50">
                     <CardTitle className="flex items-center gap-2 text-xl">
-                        <Building2 className="w-5 h-5 text-red-600" />
+                        <Building2 className="w-5 h-5 text-black" />
                         Fitness Center Profile
                     </CardTitle>
                 </CardHeader>
@@ -479,6 +481,35 @@ const VendorProfileManagement = () => {
                             </div>
 
                             <div>
+                                <Label>Amenities</Label>
+                                <div className="mt-3 space-y-2">
+                                    {['AC Facility', 'Locker Rooms', 'WiFi'].map((amenity) => (
+                                        <label key={amenity} className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={gymDetails.amenities.includes(amenity)}
+                                                onChange={(e) => {
+                                                    if (e.target.checked) {
+                                                        setGymDetails(prev => ({
+                                                            ...prev,
+                                                            amenities: [...prev.amenities, amenity]
+                                                        }));
+                                                    } else {
+                                                        setGymDetails(prev => ({
+                                                            ...prev,
+                                                            amenities: prev.amenities.filter(a => a !== amenity)
+                                                        }));
+                                                    }
+                                                }}
+                                                className="w-4 h-4 text-black border-gray-300 rounded focus:ring-black"
+                                            />
+                                            <span className="text-sm text-gray-700">{amenity}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div>
                                 <Label htmlFor="google_maps_link">
                                     Location (Google Maps Link) <span className="text-red-500">*</span>
                                 </Label>
@@ -494,7 +525,7 @@ const VendorProfileManagement = () => {
                             </div>
 
                             <div>
-                                <Label>Header Image (1 image only) <span className='text-red-500'>*</span></Label>
+                                <Label>Header Image (1 image only)</Label>
                                 <div className="mt-3 flex gap-3">
                                     {pendingHeaderImage || gymDetails.header_image ? (
                                         <div className="relative group">
@@ -506,7 +537,7 @@ const VendorProfileManagement = () => {
                                             <button
                                                 type="button"
                                                 onClick={() => handleRemovePendingImage('header')}
-                                                className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-red-700"
+                                                className="absolute -top-2 -right-2 bg-black text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-gray-800"
                                             >
                                                 <X size={14} />
                                             </button>
@@ -515,7 +546,7 @@ const VendorProfileManagement = () => {
                                         <button
                                             type="button"
                                             onClick={() => headerFileInputRef.current?.click()}
-                                            className="w-32 h-32 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg hover:border-red-500 hover:bg-red-50 transition-colors"
+                                            className="w-32 h-32 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg hover:border-black hover:bg-gray-50 transition-colors"
                                         >
                                             <Upload className="text-gray-400 mb-1" size={24} />
                                             <span className="text-xs text-gray-500">Upload</span>
@@ -532,7 +563,7 @@ const VendorProfileManagement = () => {
                             </div>
 
                             <div>
-                                <Label>Fitness Centre Images (Up to 5 images) <span className='text-red-500'>*</span></Label>
+                                <Label>Fitness Centre Images (Up to 5 images)</Label>
                                 <div className="mt-3 flex flex-wrap gap-3">
                                     {[...gymDetails.centre_images, ...pendingFitnessImages.map((file) => URL.createObjectURL(file))].map((image, index) => (
                                         <div key={index} className="relative group">
@@ -546,7 +577,7 @@ const VendorProfileManagement = () => {
                                                 onClick={() =>
                                                     handleRemovePendingImage(index < gymDetails.centre_images.length ? 'centre' : 'fitness', index)
                                                 }
-                                                className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-red-700"
+                                                className="absolute -top-2 -right-2 bg-black text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-gray-800"
                                             >
                                                 <X size={14} />
                                             </button>
@@ -556,7 +587,7 @@ const VendorProfileManagement = () => {
                                         <button
                                             type="button"
                                             onClick={() => fileInputRef.current?.click()}
-                                            className="w-32 h-32 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg hover:border-red-500 hover:bg-red-50 transition-colors"
+                                            className="w-32 h-32 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg hover:border-black hover:bg-gray-50 transition-colors"
                                         >
                                             <Upload className="text-gray-400 mb-1" size={24} />
                                             <span className="text-xs text-gray-500">Upload</span>
@@ -573,7 +604,7 @@ const VendorProfileManagement = () => {
                                 />
                             </div>
 
-                            <Button type="submit" className="w-full md:w-auto bg-red-600 hover:bg-red-700 transition-colors">
+                            <Button type="submit" className="w-full md:w-auto bg-black hover:bg-gray-800 text-white transition-colors shadow-lg">
                                 Update Fitness Center Profile
                             </Button>
                         </form>

@@ -47,7 +47,7 @@ const VendorContactUs = () => {
                     <CardContent>
                         <div className="text-2xl font-bold mt-1">
                             <a href="tel:+1234567890" className="hover:text-primary">
-                                +91 81237 84727
+                                +91 9036815005
                             </a>
                         </div>
                         <p className="text-sm text-muted-foreground mt-2">

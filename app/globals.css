@@ -118,6 +118,13 @@
   --sidebar-accent-foreground: 240 5.9% 10%;
   --sidebar-border: 220 13% 91%;
   --sidebar-ring: 217.2 91.2% 59.8%;
+  /* Landing Page Theme Variables */
+  --landing-bg-primary: #ffffff;
+  --landing-bg-secondary: #f9fafb;
+  --landing-text-primary: #000000;
+  --landing-text-secondary: #6b7280;
+  --landing-accent: #000000;
+  --landing-border: #e5e7eb;
 }
 
 .dark {

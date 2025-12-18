@@ -1,0 +1,54 @@
+import { NextResponse } from 'next/server';
+import { adminAuth } from '@/lib/firebaseAdmin';
+import dbConnect from '@/lib/db';
+import FitnessCenter from '@/lib/models/fitnessCenters';
+
+export async function GET(request) {
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const token = authHeader.split('Bearer ')[1];
+
+    try {
+        const decodedToken = await adminAuth.verifyIdToken(token);
+        const uid = decodedToken.uid;
+
+        await dbConnect();
+
+        const fitnessCenter = await FitnessCenter.findOne({ owner_id: uid });
+
+        if (!fitnessCenter) {
+            return NextResponse.json({
+                data: {
+                    monthlyBookings: 0,
+                    monthlyRevenue: 0,
+                    rating: { rating: 0, rating_count: 0 },
+                    latest_bookings: [],
+                    latest_reviews: []
+                }
+            });
+        }
+
+        // In a real implementation, we would aggregate bookings and reviews here.
+        // For now, we return 0/empty arrays + real rating from the fitness center document.
+
+        return NextResponse.json({
+            data: {
+                monthlyBookings: 0,
+                monthlyRevenue: 0,
+                rating: {
+                    rating: fitnessCenter.rating || 0,
+                    rating_count: fitnessCenter.total_reviews || 0
+                },
+                latest_bookings: [],
+                latest_reviews: []
+            }
+        });
+
+    } catch (error) {
+        console.error('Error fetching fitness center overview:', error);
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    }
+}

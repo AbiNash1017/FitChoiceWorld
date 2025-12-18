@@ -261,8 +261,8 @@ export default function CreateCentre() {
     const [contact_no, setContact_no] = useState("");
     const [centreDescription, setCentreDescription] = useState("");
     const [address, setAddress] = useState("");
-    const [city, setCity] = useState("");
-    const [state, setState] = useState("");
+    const [city, setCity] = useState("Bengaluru");
+    const [state, setState] = useState("Karnataka");
     const [location, setLocation] = useState({
         latitude: null,
         longitude: null,
@@ -403,16 +403,17 @@ export default function CreateCentre() {
     }
 
     return (
-        <div className="min-h-screen flex bg-black">
-            <div>
-                <Link href={'/'}><Image src={Logo} alt="FCW Logo" height={50} width={50} className='h-[45px] w-[45px] md:h-[50px] md:w-[50px] lg:h-[70px] lg:w-[70px] mt-2' /></Link>
+        <div className="min-h-screen flex bg-white">
+            <div className="absolute top-4 left-4 lg:hidden">
+                <Link href={'/'}><Image src={Logo} alt="FCW Logo" height={50} width={50} className='h-[45px] w-[45px]' /></Link>
             </div>
-            <div className="hidden lg:flex lg:w-1/2 bg-black p-10 flex-col justify-center items-start">
+            <div className="hidden lg:flex lg:w-1/2 bg-gray-50 p-10 flex-col justify-center items-start border-r border-gray-100">
                 <div>
-                    <h1 className="text-4xl font-bold text-white mb-1">
-                        Become a <span className="text-red-600">FCW</span> User
+                    <Link href={'/'}><Image src={Logo} alt="FCW Logo" height={70} width={70} className='mb-12' /></Link>
+                    <h1 className="text-4xl font-bold text-black mb-1 tracking-tight">
+                        Become a <span className="text-gray-500">FCW</span> User
                     </h1>
-                    <p className="text-lg text-gray-400 mb-5">
+                    <p className="text-lg text-gray-500 mb-8 font-medium">
                         Take your fitness journey to the next level with our platform
                     </p>
                     <ul className="space-y-4">
@@ -422,19 +423,19 @@ export default function CreateCentre() {
                             "Swipe, match and book a couples session",
                             "Track your progress on our leaderboard",
                         ].map((feature, index) => (
-                            <li key={index} className="flex items-center text-gray-300">
-                                <span className="w-5 h-5 mr-3 rounded-full bg-red-600 flex items-center justify-center text-white text-sm">✓</span>
+                            <li key={index} className="flex items-center text-gray-600 font-medium">
+                                <span className="w-5 h-5 mr-3 rounded-full bg-black flex items-center justify-center text-white text-xs">✓</span>
                                 {feature}
                             </li>
                         ))}
                     </ul>
                 </div>
 
-                <div>
-                    <h1 className="text-4xl font-bold text-white mt-8 mb-1">
-                        Become a <span className="text-red-600">FCW</span> Partner
+                <div className="mt-16">
+                    <h1 className="text-4xl font-bold text-black mt-8 mb-1 tracking-tight">
+                        Become a <span className="text-gray-500">FCW</span> Partner
                     </h1>
-                    <p className="text-lg text-gray-400 mb-5">
+                    <p className="text-lg text-gray-500 mb-8 font-medium">
                         Streamline your fitness center management with our powerful platform
                     </p>
                     <ul className="space-y-4">
@@ -444,8 +445,8 @@ export default function CreateCentre() {
                             "Real-time revenue tracking",
                             "Comprehensive analytics"
                         ].map((feature, index) => (
-                            <li key={index} className="flex items-center text-gray-300">
-                                <span className="w-5 h-5 mr-3 rounded-full bg-red-600 flex items-center justify-center text-white text-sm">✓</span>
+                            <li key={index} className="flex items-center text-gray-600 font-medium">
+                                <span className="w-5 h-5 mr-3 rounded-full bg-black flex items-center justify-center text-white text-xs">✓</span>
                                 {feature}
                             </li>
                         ))}
@@ -453,28 +454,21 @@ export default function CreateCentre() {
                 </div>
             </div>
 
-            <div className="w-full lg:w-1/2 bg-white bg-opacity-10 flex items-center justify-center p-8">
+            <div className="w-full lg:w-1/2 bg-white flex items-center justify-center p-8 overflow-y-auto">
                 <div className="max-w-md w-full">
-                    <div className="text-center mb-8">
-                        <h2 className="text-3xl font-bold text-white mb-2">Create your Fitness Centre</h2>
-                        {/* <p className="text-gray-300">
-                            Have an account?{" "}
-                            <Link href="/login" replace={true} className="text-red-600 hover:underline">
-                                Log In
-                            </Link>
-                        </p> */}
+                    <div className="text-center mb-10">
+                        <h2 className="text-3xl font-bold text-black mb-3 tracking-tight">Create Your Fitness Centre</h2>
                     </div>
 
                     <div className="space-y-4">
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            {/* centre_name, centre_description, address, latitude, longitude, city, state */}
+                        <form onSubmit={handleSubmit} className="space-y-5">
                             <Input
                                 type="text"
                                 placeholder="Fitness Centre Name"
                                 value={centreName}
                                 onChange={(e) => setCentreName(e.target.value)}
                                 required
-                                className="bg-white/80 placeholder:text-gray-500"
+                                className="bg-gray-50 border-gray-200 text-black placeholder:text-gray-400 focus:border-black transition-colors py-6 rounded-xl"
                             />
                             <div className="space-y-2">
                                 <Textarea
@@ -482,9 +476,9 @@ export default function CreateCentre() {
                                     placeholder="Fitness Centre Description"
                                     value={centreDescription}
                                     onChange={handleChange}
-                                    className="bg-white/80 placeholder:text-gray-500 resize-none"
+                                    className="bg-gray-50 border-gray-200 text-black placeholder:text-gray-400 focus:border-black transition-colors rounded-xl resize-none min-h-[100px]"
                                 />
-                                <p className="text-sm text-muted-foreground">
+                                <p className="text-sm text-gray-500 font-medium">
                                     {MAX_CHARS - centreDescription.length} characters remaining
                                 </p>
                             </div>
@@ -494,28 +488,16 @@ export default function CreateCentre() {
                                 value={address}
                                 onChange={(e) => setAddress(e.target.value)}
                                 required
-                                className="bg-white/80 placeholder:text-gray-500"
+                                className="bg-gray-50 border-gray-200 text-black placeholder:text-gray-400 focus:border-black transition-colors py-6 rounded-xl"
                             />
-                            <Select name="edit-city" value={city} onValueChange={(value) => setCity(value)} disabled={!state}>
-                                <SelectTrigger className="mt-1 bg-white/80 placeholder:text-gray-500">
-                                    <SelectValue placeholder={state ? "Select City" : "Please select a state first"} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {state && statesCities[state]?.map((cityName) => (
-                                        <SelectItem key={cityName} value={cityName}>
-                                            {cityName}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
                             <Select name="edit-state" value={state} onValueChange={(value) => {
                                 setState(value);
                                 setCity(""); // Reset city when state changes
                             }}>
-                                <SelectTrigger className="mt-1 bg-white/80 placeholder:text-gray-500">
+                                <SelectTrigger className="mt-1 bg-gray-50 border-gray-200 text-black placeholder:text-gray-400 focus:border-black transition-colors py-6 rounded-xl">
                                     <SelectValue placeholder="State" />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent className="bg-white border-gray-200 text-black">
                                     {states.map((stateName) => (
                                         <SelectItem key={stateName} value={stateName}>
                                             {stateName}
@@ -523,21 +505,25 @@ export default function CreateCentre() {
                                     ))}
                                 </SelectContent>
                             </Select>
-                            {/* <Input
-                                type="text"
-                                placeholder="State"
-                                value={state}
-                                onChange={(e) => setState(e.target.value)}
-                                required
-                                className="bg-white/80 placeholder:text-gray-500"
-                            /> */}
+                            <Select name="edit-city" value={city} onValueChange={(value) => setCity(value)} disabled={!state}>
+                                <SelectTrigger className="mt-1 bg-gray-50 border-gray-200 text-black placeholder:text-gray-400 focus:border-black transition-colors py-6 rounded-xl">
+                                    <SelectValue placeholder={state ? "Select City" : "Please select a state first"} />
+                                </SelectTrigger>
+                                <SelectContent className="bg-white border-gray-200 text-black">
+                                    {state && statesCities[state]?.map((cityName) => (
+                                        <SelectItem key={cityName} value={cityName}>
+                                            {cityName}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                             <Input
                                 type="text"
                                 placeholder="Pincode"
                                 value={pincode}
                                 onChange={(e) => setPincode(e.target.value)}
                                 required
-                                className="bg-white/80 placeholder:text-gray-500"
+                                className="bg-gray-50 border-gray-200 text-black placeholder:text-gray-400 focus:border-black transition-colors py-6 rounded-xl"
                             />
                             <Input
                                 type="text"
@@ -545,12 +531,12 @@ export default function CreateCentre() {
                                 value={contact_no}
                                 onChange={(e) => setContact_no(e.target.value)}
                                 required
-                                className="bg-white/80 placeholder:text-gray-500"
+                                className="bg-gray-50 border-gray-200 text-black placeholder:text-gray-400 focus:border-black transition-colors py-6 rounded-xl"
                             />
-                            {error && <p style={{ color: "red" }}>{error}</p>}
+                            {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
                             <div>
-                                <Button type="submit" disabled={!user || processing} className={`w-full mt-3 bg-red-700 hover:bg-red-800 ${!user && 'bg-gray-500 hover:bg-gray-700'}`}>
-                                    Continue
+                                <Button type="submit" disabled={!user || processing} className={`w-full mt-4 bg-black hover:bg-gray-800 text-white py-6 rounded-xl text-lg font-bold tracking-wide shadow-lg shadow-gray-200 transition-all ${!user && 'bg-gray-300 cursor-not-allowed hover:bg-gray-300'}`}>
+                                    {processing ? 'Creating...' : 'Create Centre'}
                                 </Button>
                             </div>
                         </form>

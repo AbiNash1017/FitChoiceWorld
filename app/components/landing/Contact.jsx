@@ -8,51 +8,43 @@ import { ArrowDown, ArrowRight, Mail, Phone } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 const Contact = () => {
-    const [name, setName] = useState('')
-    const [email, setEmail] = useState('')
-    const [message, setMessage] = useState('')
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [message, setMessage] = useState('')
 
-    const handleSubmit = (e) => {
-        // e.preventDefault();
-        // const body = encodeURIComponent(`Name: ${name}\nEmail: ${email}\nMessage:\n${message}`);
-        // const subject = encodeURIComponent('Subject');
-        // window.location.href = `https://mail.google.com/mail/?view=cm&fs=1&to=info@fitchoiceworld.com&subject=${subject}&body=${body}`;
-    };
-
-
-    return (
-        <section id='contact' className='bg-black py-12'>
-            <div className="container max-w-7xl mx-auto px-4">
-                <motion.h3
-                    className='text-4xl md:text-5xl font-bold text-center mb-12 text-white'
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                >
-                    <span className='text-red-600'>CONTACT</span> US
-                </motion.h3>
-                {/* <div className='flex flex-col md:flex-row justify-between items-start gap-12'> */}
-                <motion.div
-                    className='flex flex-col justify-center items-center space-y-3'
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.5, delay: 0.2 }}
-                >
-                    <h4 className='text-2xl font-semibold text-white mb-4'>Get in Touch</h4>
-                    <p className='text-gray-300 mb-6'>Feel free to reach out to us for any questions:</p>
-                    <div className='flex items-center text-white'>
-                        <Phone className='mr-3 text-red-600' />
-                        <span className='text-lg'>+91 8123784727</span>
-                    </div>
-                    <div className='flex items-center text-white'>
-                        <Mail className='mr-3 text-red-600' />
-                        <span className='text-lg'>info@fitchoiceworld.com</span>
-                    </div>
-                    {/* <p className='text-gray-300 mt-6'>
+  return (
+    <section id='contact' className='bg-black py-12'>
+      <div className="container max-w-7xl mx-auto px-4">
+        <motion.h3
+          className='text-4xl md:text-5xl font-bold text-center mb-12 text-white'
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          CONTACT US
+        </motion.h3>
+        {/* <div className='flex flex-col md:flex-row justify-between items-start gap-12'> */}
+        <motion.div
+          className='flex flex-col justify-center items-center space-y-3'
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <h4 className='text-2xl font-semibold text-white mb-4'>Get in Touch</h4>
+          <p className='text-gray-300 mb-6'>Feel free to reach out to us for any questions:</p>
+          <div className='flex items-center text-white'>
+            <Phone className='mr-3 text-white' />
+            <span className='text-lg'>+91 9036815005</span>
+          </div>
+          <div className='flex items-center text-white'>
+            <Mail className='mr-3 text-white' />
+            <span className='text-lg'>info@fitchoiceworld.com</span>
+          </div>
+          {/* <p className='text-gray-300 mt-6'>
               Or message us directly through this form! <ArrowRight  className='inline ml-2 text-red-600' />
             </p> */}
-                </motion.div>
-                {/* <motion.div 
+        </motion.div>
+        {/* <motion.div 
             className='flex-1'
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -103,10 +95,10 @@ const Contact = () => {
               </form>
             </div>
           </motion.div> */}
-                {/* </div> */}
-            </div>
-        </section>
-    )
+        {/* </div> */}
+      </div>
+    </section>
+  )
 }
 
 export default Contact

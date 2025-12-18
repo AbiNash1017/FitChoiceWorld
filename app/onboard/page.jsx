@@ -131,19 +131,19 @@ export default function Onboard() {
         }
     };
 
-    if (loading) return <div className="min-h-screen flex items-center justify-center bg-black text-white">Loading...</div>;
+    if (loading) return <div className="min-h-screen flex items-center justify-center bg-white text-black font-medium">Loading...</div>;
 
     return (
-        <div className="min-h-screen flex bg-black">
-            <div>
-                <Link href={'/'}><Image src={Logo} alt="FCW Logo" height={50} width={50} className='h-[45px] w-[45px] md:h-[50px] md:w-[50px] lg:h-[70px] lg:w-[70px] mt-2' /></Link>
+        <div className="min-h-screen flex bg-white">
+            <div className="absolute top-4 left-4 lg:hidden">
+                <Link href={'/'}><Image src={Logo} alt="FCW Logo" height={50} width={50} className='h-[45px] w-[45px]' /></Link>
             </div>
-            <div className="hidden lg:flex lg:w-1/2 bg-black p-10 flex-col justify-center items-start">
+            <div className="hidden lg:flex lg:w-1/2 bg-gray-50 p-10 flex-col justify-center items-start border-r border-gray-100">
                 <div>
-                    <h1 className="text-4xl font-bold text-white mb-1">
-                        Become a <span className="text-red-600">FCW</span> User
+                    <h1 className="text-4xl font-bold text-black mb-1 tracking-tight">
+                        Become a <span className="text-gray-500">FCW</span> User
                     </h1>
-                    <p className="text-lg text-gray-400 mb-5">
+                    <p className="text-lg text-gray-500 mb-8 font-medium">
                         Take your fitness journey to the next level with our platform
                     </p>
                     <ul className="space-y-4">
@@ -153,19 +153,19 @@ export default function Onboard() {
                             "Swipe, match and book a couples session",
                             "Track your progress on our leaderboard",
                         ].map((feature, index) => (
-                            <li key={index} className="flex items-center text-gray-300">
-                                <span className="w-5 h-5 mr-3 rounded-full bg-red-600 flex items-center justify-center text-white text-sm">✓</span>
+                            <li key={index} className="flex items-center text-gray-600 font-medium">
+                                <span className="w-5 h-5 mr-3 rounded-full bg-black flex items-center justify-center text-white text-xs">✓</span>
                                 {feature}
                             </li>
                         ))}
                     </ul>
                 </div>
 
-                <div>
-                    <h1 className="text-4xl font-bold text-white mt-8 mb-1">
-                        Become a <span className="text-red-600">FCW</span> Partner
+                <div className="mt-16">
+                    <h1 className="text-4xl font-bold text-black mt-8 mb-1 tracking-tight">
+                        Become a <span className="text-gray-500">FCW</span> Partner
                     </h1>
-                    <p className="text-lg text-gray-400 mb-5">
+                    <p className="text-lg text-gray-500 mb-8 font-medium">
                         Streamline your fitness center management with our powerful platform
                     </p>
                     <ul className="space-y-4">
@@ -175,8 +175,8 @@ export default function Onboard() {
                             "Real-time revenue tracking",
                             "Comprehensive analytics"
                         ].map((feature, index) => (
-                            <li key={index} className="flex items-center text-gray-300">
-                                <span className="w-5 h-5 mr-3 rounded-full bg-red-600 flex items-center justify-center text-white text-sm">✓</span>
+                            <li key={index} className="flex items-center text-gray-600 font-medium">
+                                <span className="w-5 h-5 mr-3 rounded-full bg-black flex items-center justify-center text-white text-xs">✓</span>
                                 {feature}
                             </li>
                         ))}
@@ -184,21 +184,21 @@ export default function Onboard() {
                 </div>
             </div>
 
-            <div className="w-full lg:w-1/2 bg-white bg-opacity-10 flex items-center justify-center p-8">
+            <div className="w-full lg:w-1/2 bg-white flex items-center justify-center p-8">
                 <div className="max-w-md w-full">
-                    <div className="text-center mb-8">
-                        <h2 className="text-3xl font-bold text-white mb-2">OnBoard</h2>
+                    <div className="text-center mb-10">
+                        <h2 className="text-3xl font-bold text-black mb-3 tracking-tight">OnBoard</h2>
                     </div>
 
                     <div className="space-y-4">
-                        <form onSubmit={handleSubmit} className="space-y-4">
+                        <form onSubmit={handleSubmit} className="space-y-5">
                             <Input
                                 type="text"
                                 placeholder="First Name"
                                 value={firstName}
                                 onChange={(e) => setFirstName(e.target.value)}
                                 required
-                                className="bg-white/80 placeholder:text-gray-500"
+                                className="bg-gray-50 border-gray-200 text-black placeholder:text-gray-400 focus:border-black transition-colors py-6 rounded-xl"
                             />
                             <Input
                                 type="text"
@@ -206,13 +206,13 @@ export default function Onboard() {
                                 value={lastName}
                                 onChange={(e) => setLastName(e.target.value)}
                                 required
-                                className="bg-white/80 placeholder:text-gray-500"
+                                className="bg-gray-50 border-gray-200 text-black placeholder:text-gray-400 focus:border-black transition-colors py-6 rounded-xl"
                             />
                             <Select name="edit-gender" value={gender} onValueChange={(value) => setGender(value)} >
-                                <SelectTrigger className="mt-1 bg-white/80 placeholder:text-gray-500">
+                                <SelectTrigger className="mt-1 bg-gray-50 border-gray-200 text-black placeholder:text-gray-400 focus:border-black transition-colors py-6 rounded-xl">
                                     <SelectValue placeholder="Gender" />
                                 </SelectTrigger>
-                                <SelectContent >
+                                <SelectContent className="bg-white border-gray-200 text-black">
                                     <SelectItem value="male">Male</SelectItem>
                                     <SelectItem value="female">Female</SelectItem>
                                 </SelectContent>
@@ -223,7 +223,7 @@ export default function Onboard() {
                                 value={dob}
                                 onChange={(e) => setDob(e.target.value)}
                                 required
-                                className="bg-white/80 placeholder:text-gray-500"
+                                className="bg-gray-50 border-gray-200 text-black placeholder:text-gray-400 focus:border-black transition-colors py-6 rounded-xl"
                             />
                             <Input
                                 type="tel"
@@ -231,7 +231,7 @@ export default function Onboard() {
                                 value={mobileNumber}
                                 onChange={(e) => setMobileNumuber(e.target.value)}
                                 required
-                                className="bg-white/80 placeholder:text-gray-500"
+                                className="bg-gray-50 border-gray-200 text-black placeholder:text-gray-400 focus:border-black transition-colors py-6 rounded-xl"
                             />
                             <Input
                                 type="text"
@@ -239,7 +239,7 @@ export default function Onboard() {
                                 value={city}
                                 onChange={(e) => setCity(e.target.value)}
                                 required
-                                className="bg-white/80 placeholder:text-gray-500"
+                                className="bg-gray-50 border-gray-200 text-black placeholder:text-gray-400 focus:border-black transition-colors py-6 rounded-xl"
                             />
                             <Input
                                 type="text"
@@ -247,12 +247,12 @@ export default function Onboard() {
                                 value={state}
                                 onChange={(e) => setState(e.target.value)}
                                 required
-                                className="bg-white/80 placeholder:text-gray-500"
+                                className="bg-gray-50 border-gray-200 text-black placeholder:text-gray-400 focus:border-black transition-colors py-6 rounded-xl"
                             />
 
-                            {error && <p style={{ color: "red" }}>{error}</p>}
+                            {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
                             <div>
-                                <Button type="submit" disabled={!user || processing} className={`w-full mt-3 bg-red-700 hover:bg-red-800 ${!user && 'bg-gray-500 hover:bg-gray-700'}`}>
+                                <Button type="submit" disabled={!user || processing} className={`w-full mt-4 bg-black hover:bg-gray-800 text-white py-6 rounded-xl text-lg font-bold tracking-wide shadow-lg shadow-gray-200 transition-all ${!user && 'bg-gray-300 cursor-not-allowed hover:bg-gray-300'}`}>
                                     Continue
                                 </Button>
                             </div>

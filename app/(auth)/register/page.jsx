@@ -146,16 +146,17 @@ export default function Login() {
     };
 
     return (
-        <div className="min-h-screen flex bg-black">
-            <div>
-                <Link href={'/'}><Image src={Logo} alt="FCW Logo" height={50} width={50} className='h-[45px] w-[45px] md:h-[50px] md:w-[50px] lg:h-[70px] lg:w-[70px] mt-2' /></Link>
+        <div className="min-h-screen flex bg-white">
+            <div className="absolute top-4 left-4 lg:hidden">
+                <Link href={'/'}><Image src={Logo} alt="FCW Logo" height={50} width={50} className='h-[45px] w-[45px]' /></Link>
             </div>
-            <div className="hidden lg:flex lg:w-1/2 bg-black p-10 flex-col justify-center items-start">
+            <div className="hidden lg:flex lg:w-1/2 bg-gray-50 p-10 flex-col justify-center items-start border-r border-gray-100">
                 <div>
-                    <h1 className="text-4xl font-bold text-white mb-1">
-                        Become a <span className="text-red-600">FCW</span> User
+                    <Link href={'/'}><Image src={Logo} alt="FCW Logo" height={70} width={70} className='mb-12' /></Link>
+                    <h1 className="text-4xl font-bold text-black mb-1 tracking-tight">
+                        Become a <span className="text-gray-500">FCW</span> User
                     </h1>
-                    <p className="text-lg text-gray-400 mb-5">
+                    <p className="text-lg text-gray-500 mb-8 font-medium">
                         Take your fitness journey to the next level with our platform
                     </p>
                     <ul className="space-y-4">
@@ -165,19 +166,19 @@ export default function Login() {
                             "Swipe, match and book a couples session",
                             "Track your progress on our leaderboard",
                         ].map((feature, index) => (
-                            <li key={index} className="flex items-center text-gray-300">
-                                <span className="w-5 h-5 mr-3 rounded-full bg-red-600 flex items-center justify-center text-white text-sm">✓</span>
+                            <li key={index} className="flex items-center text-gray-600 font-medium">
+                                <span className="w-5 h-5 mr-3 rounded-full bg-black flex items-center justify-center text-white text-xs">✓</span>
                                 {feature}
                             </li>
                         ))}
                     </ul>
                 </div>
 
-                <div>
-                    <h1 className="text-4xl font-bold text-white mt-8 mb-1">
-                        Become a <span className="text-red-600">FCW</span> Partner
+                <div className="mt-16">
+                    <h1 className="text-4xl font-bold text-black mt-8 mb-1 tracking-tight">
+                        Become a <span className="text-gray-500">FCW</span> Partner
                     </h1>
-                    <p className="text-lg text-gray-400 mb-5">
+                    <p className="text-lg text-gray-500 mb-8 font-medium">
                         Streamline your fitness center management with our powerful platform
                     </p>
                     <ul className="space-y-4">
@@ -187,8 +188,8 @@ export default function Login() {
                             "Real-time revenue tracking",
                             "Comprehensive analytics"
                         ].map((feature, index) => (
-                            <li key={index} className="flex items-center text-gray-300">
-                                <span className="w-5 h-5 mr-3 rounded-full bg-red-600 flex items-center justify-center text-white text-sm">✓</span>
+                            <li key={index} className="flex items-center text-gray-600 font-medium">
+                                <span className="w-5 h-5 mr-3 rounded-full bg-black flex items-center justify-center text-white text-xs">✓</span>
                                 {feature}
                             </li>
                         ))}
@@ -196,55 +197,61 @@ export default function Login() {
                 </div>
             </div>
 
-            <div className="w-full lg:w-1/2 bg-white bg-opacity-10 flex items-center justify-center p-8">
+            <div className="w-full lg:w-1/2 bg-white flex items-center justify-center p-8">
                 <div className="max-w-md w-full">
-                    <div className="text-center mb-8">
-                        <h2 className="text-3xl font-bold text-white mb-2">Sign Up</h2>
-                        <p className="text-gray-300">
+                    <div className="text-center mb-10">
+                        <h2 className="text-3xl font-bold text-black mb-3 tracking-tight">Sign Up</h2>
+                        <p className="text-gray-500 font-medium">
                             Have an account?{" "}
-                            <Link href="/login" replace={true} className="text-red-600 hover:underline">
+                            <Link href="/login" replace={true} className="text-black underline hover:text-gray-700 transition-colors">
                                 Log In
                             </Link>
                         </p>
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                         {!showOtpInput ? (
                             <form onSubmit={onSignUpSubmit} className="space-y-4">
-                                <Input
-                                    type="tel"
-                                    placeholder="Phone Number (e.g., +1234567890)"
-                                    value={phoneNumber}
-                                    onChange={(e) => setPhoneNumber(e.target.value)}
-                                    required
-                                    className="bg-white/80  placeholder:text-gray-500"
-                                />
+                                <div className="space-y-2">
+                                    <Input
+                                        type="tel"
+                                        placeholder="Phone Number (e.g., +1234567890)"
+                                        value={phoneNumber}
+                                        onChange={(e) => setPhoneNumber(e.target.value)}
+                                        required
+                                        className="bg-gray-50 border-gray-200 text-black placeholder:text-gray-400 focus:border-black transition-colors py-6 rounded-xl"
+                                    />
+                                </div>
                                 <div id="recaptcha-container"></div>
-                                {error && <p style={{ color: "red" }}>{error}</p>}
+                                {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
                                 <div className="flex flex-col justify-between items-end">
-                                    <Button type="submit" disabled={processing} className="w-full bg-red-700 hover:bg-red-800 mt-4 text-white">
+                                    <Button type="submit" disabled={processing} className="w-full bg-black hover:bg-gray-800 mt-2 text-white py-6 rounded-xl text-lg font-bold tracking-wide shadow-lg shadow-gray-200 transition-all">
                                         {processing ? "Sending..." : "Send OTP"}
                                     </Button>
                                 </div>
                             </form>
                         ) : (
                             <form onSubmit={onOtpVerify} className="space-y-4">
-                                <Input
-                                    type="text"
-                                    placeholder="Enter OTP"
-                                    value={otp}
-                                    onChange={(e) => setOtp(e.target.value)}
-                                    required
-                                    className="bg-white/80  placeholder:text-gray-500"
-                                />
-                                {error && <p style={{ color: "red" }}>{error}</p>}
-                                <div className="flex flex-col justify-between items-end">
-                                    <Button type="submit" disabled={processing} className="w-full bg-red-700 hover:bg-red-800 mt-4 text-white">
+                                <div className="space-y-2">
+                                    <Input
+                                        type="text"
+                                        placeholder="Enter OTP"
+                                        value={otp}
+                                        onChange={(e) => setOtp(e.target.value)}
+                                        required
+                                        className="bg-gray-50 border-gray-200 text-black placeholder:text-gray-400 focus:border-black transition-colors py-6 rounded-xl text-center text-2xl tracking-widest"
+                                    />
+                                </div>
+                                {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
+                                <div className="flex flex-col justify-between items-end w-full">
+                                    <Button type="submit" disabled={processing} className="w-full bg-black hover:bg-gray-800 mt-2 text-white py-6 rounded-xl text-lg font-bold tracking-wide shadow-lg shadow-gray-200 transition-all">
                                         {processing ? "Verifying..." : "Verify OTP"}
                                     </Button>
-                                    <div className="mt-2 text-gray-300 text-sm">
-                                        {timer > 0 ? `Resend OTP in ${timer}s` : (
-                                            <button type="button" onClick={onSignUpSubmit} className="text-red-600 hover:underline">
+                                    <div className="mt-4 text-center w-full">
+                                        {timer > 0 ? (
+                                            <span className="text-gray-400 text-sm font-medium">Resend OTP in {timer}s</span>
+                                        ) : (
+                                            <button type="button" onClick={onSignUpSubmit} className="text-black font-semibold hover:underline text-sm">
                                                 Resend OTP
                                             </button>
                                         )}
@@ -252,47 +259,6 @@ export default function Login() {
                                 </div>
                             </form>
                         )}
-
-                        {/* Original Form (Commented out)
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <Input
-                                type="email"
-                                placeholder="Email"
-                                value={email_id}
-                                onChange={(e) => setEmail(e.target.value)}
-                                required
-                                className="bg-white/80  placeholder:text-gray-500"
-                            />
-                            <Input
-                                type="password"
-                                placeholder="Password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
-                                className="bg-white/80 placeholder:text-gray-500"
-                            />
-                            <Input
-                                type="password"
-                                placeholder="Confirm Password"
-                                value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                required
-                                className="bg-white/80  placeholder:text-gray-500"
-                            />
-                            {/* <select value={role} onChange={(e) => setRole(e.target.value)} className="w-full rounded-md border p-2 text-sm bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"> */}
-                        {/* <option value="defaultopt">Select role</option> */}
-                        {/* <option value="vendor">Vendor</option>
-                        <option value="admin">Admin</option> */}
-                        {/* </select> */}
-                        {/*
-                            {error && <p style={{ color: "red" }}>{error}</p>}
-                            <div>
-                                <Button disabled={processing} type="submit" className="w-full mt-3 bg-red-700 hover:bg-red-800 text-white">
-                                    Sign Up
-                                </Button>
-                            </div>
-                        </form>
-                        */}
                     </div>
                 </div>
             </div>

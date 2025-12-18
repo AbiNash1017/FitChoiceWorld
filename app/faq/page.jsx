@@ -61,13 +61,13 @@ const FAQItem = ({ item }) => {
     const [isOpen, setIsOpen] = React.useState(false)
 
     return (
-        <div className="border-b border-white/10">
+        <div className="border-b border-[var(--landing-border)]">
             <button
-                className="flex justify-between items-center w-full text-left py-5 px-1"
+                className="flex justify-between items-center w-full text-left py-5 px-1 hover:bg-gray-50 transition-colors rounded-lg"
                 onClick={() => setIsOpen(!isOpen)}
                 aria-expanded={isOpen}
             >
-                <span className="font-medium text-lg text-white/80 tracking-wide">
+                <span className="font-medium text-lg text-[var(--landing-text-primary)] tracking-wide">
                     {item.question}
                 </span>
                 <motion.div
@@ -75,7 +75,7 @@ const FAQItem = ({ item }) => {
                     transition={{ duration: 0.3 }}
                     className="ml-4 flex-shrink-0"
                 >
-                    <ChevronDown className="w-5 h-5 text-white/80" />
+                    <ChevronDown className="w-5 h-5 text-[var(--landing-text-secondary)]" />
                 </motion.div>
             </button>
             <AnimatePresence initial={false}>
@@ -90,7 +90,7 @@ const FAQItem = ({ item }) => {
                         }}
                         transition={{ duration: 0.3, ease: [0.04, 0.62, 0.23, 0.98] }}
                     >
-                        <div className="text-md pb-3 px-1 text-white/80">
+                        <div className="text-md pb-3 px-1 text-[var(--landing-text-secondary)]">
                             {item.answer}
                         </div>
                     </motion.div>
@@ -102,20 +102,20 @@ const FAQItem = ({ item }) => {
 
 const FAQPage = () => {
     return (
-        <div className="min-h-screen bg-black pt-32 px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-[var(--landing-bg-primary)] pt-32 px-4 sm:px-6 lg:px-8">
             <Header />
             <div className="max-w-7xl mx-auto">
-                <h1 className="text-4xl font-bold text-white/90 text-center mb-8">
+                <h1 className="text-4xl font-bold text-[var(--landing-text-primary)] text-center mb-8">
                     FAQ'S
                 </h1>
-                <h1 className="text-3xl font-bold text-red-700 pt-8 pb-6 border-t border-white/20">USERS</h1>
-                <div className="divide-y divide-white/10 mb-8">
+                <h1 className="text-3xl font-bold text-[var(--landing-text-primary)] pt-8 pb-6 border-t border-[var(--landing-border)]">USERS</h1>
+                <div className="divide-y divide-[var(--landing-border)] mb-8">
                     {faqDataUsers.map((item, index) => (
                         <FAQItem key={index} item={item} />
                     ))}
                 </div>
-                <h1 className="text-3xl font-bold text-red-700 pt-10 pb-6 border-t border-white/20">FITNESS CENTERS</h1>
-                <div className="divide-y divide-white/10 pb-10">
+                <h1 className="text-3xl font-bold text-[var(--landing-text-primary)] pt-10 pb-6 border-t border-[var(--landing-border)]">FITNESS CENTERS</h1>
+                <div className="divide-y divide-[var(--landing-border)] pb-10">
                     {faqDataVendors.map((item, index) => (
                         <FAQItem key={index} item={item} />
                     ))}
