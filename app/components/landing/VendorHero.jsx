@@ -36,7 +36,7 @@ const VendorHero = () => {
                             {/* <h2 className="mb-6 text-lg sm:text-xl md:text-2xl lg:text-3xl leading-tight text-white">Manage <span className="text-red-700">bookings</span>, track <span className="text-red-700">revenue</span> and connect with new <span className="text-red-700">customers</span> — all in one place.</h2> */}
                             <Link
                                 className="inline-block text-xl sm:text-2xl text-white px-5 py-3 font-semibold tracking-wide rounded-md bg-black/60 border-2 border-red-800 hover:bg-red-800/70 transition-colors duration-300"
-                                href="/register"
+                                href="/login"
                             >
                                 Register Now
                             </Link>

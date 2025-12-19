@@ -3,7 +3,6 @@
 import { adminAuth } from '@/lib/firebaseAdmin'
 import { NextResponse } from 'next/server'
 import dbConnect from '@/lib/db'
-import User from '@/lib/models/User'
 import CenterAdminMetadata from '@/lib/models/CenterAdminMetadata'
 
 export async function POST(request) {
@@ -38,38 +37,30 @@ export async function POST(request) {
         // Connect to MongoDB
         await dbConnect()
 
-        // Upsert user (create if not exists, update if exists)
-        const updatedUser = await User.findOneAndUpdate(
-            { uid: uid },
-            {
-                first_name,
-                last_name,
-                gender,
-                dob,
-                state,
-                city,
-                phone_number: mobile_no,
-                latitude,
-                longitude,
-                address,
-                onboarding_completed: true,
-                updated_at: new Date(),
-            },
-            { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
-        )
+        // Update CenterAdminMetadata directly
+        // We no longer update the User schema here as per new requirement
+        // to separate vendor data.
 
-        // Sync user data to center_admin_metadata
-        await CenterAdminMetadata.findOneAndUpdate(
+        // Generate username: fcw_ + last 10 digits of uid
+        const usernameId = uid.length >= 10 ? uid.slice(-10) : uid;
+        const username = `fcw_${usernameId}`;
+
+        const updatedMetadata = await CenterAdminMetadata.findOneAndUpdate(
             { uid: uid },
             {
                 uid: uid,
-                username: updatedUser.username,
+                username: username,
                 first_name: first_name,
                 last_name: last_name,
                 gender: gender,
+                state: state,
+                city: city,
+                address: address,
+                latitude: latitude,
+                longitude: longitude,
                 admin_phone_number: mobile_no,
-                admin_email: updatedUser.email || null,
-                profile_image_url: updatedUser.profile_image_url || null,
+                // admin_email: updatedUser.email || null, // We might need to fetch email from auth or existing user record if needed
+                // onboarding_completed: true, // Defer setting this until fitness center is created
                 updated_at: new Date(),
             },
             { new: true, upsert: true, runValidators: true }
@@ -77,7 +68,8 @@ export async function POST(request) {
 
         return NextResponse.json({
             message: 'User onboarded successfully',
-            user: updatedUser,
+            message: 'User onboarded successfully',
+            user: updatedMetadata,
             nextStep: '/createCentre'
         }, { status: 200 })
 

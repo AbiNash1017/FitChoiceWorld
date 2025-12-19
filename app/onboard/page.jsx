@@ -13,7 +13,7 @@ export default function Onboard() {
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
     const [gender, setGender] = useState("");
-    const [dob, setDob] = useState("");
+    // const [dob, setDob] = useState("");
     const [mobileNumber, setMobileNumuber] = useState("");
     const [city, setCity] = useState("");
     const [state, setState] = useState("");
@@ -105,7 +105,7 @@ export default function Onboard() {
                     first_name: firstName,
                     last_name: lastName,
                     gender,
-                    dob,
+                    // dob,
                     state,
                     city,
                     mobile_no: mobileNumber,
@@ -217,14 +217,14 @@ export default function Onboard() {
                                     <SelectItem value="female">Female</SelectItem>
                                 </SelectContent>
                             </Select>
-                            <Input
+                            {/* <Input
                                 type="date"
                                 placeholder="DoB"
                                 value={dob}
                                 onChange={(e) => setDob(e.target.value)}
                                 required
                                 className="bg-gray-50 border-gray-200 text-black placeholder:text-gray-400 focus:border-black transition-colors py-6 rounded-xl"
-                            />
+                            /> */}
                             <Input
                                 type="tel"
                                 placeholder="Mobile Number"

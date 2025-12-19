@@ -94,7 +94,7 @@ const VendorProfileManagement = () => {
                     header_image: data.fitnessCenter.image_urls?.[0] || '',
                     owner_id: data.fitnessCenter.owner_id || '',
                     centre_images: data.fitnessCenter.image_urls || [],
-                    google_maps_link: '', // Not in schema
+                    google_maps_link: data.fitnessCenter.map_url || '',
                     contact_no: data.fitnessCenter.phone_number || '',
                     amenities: data.fitnessCenter.amenities || []
                 });

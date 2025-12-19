@@ -13,7 +13,7 @@ import { auth } from "@/firebaseConfig";
 export default function Login() {
     // const [email_id, setEmail] = useState("");
     // const [password, setPassword] = useState("");
-    const [phoneNumber, setPhoneNumber] = useState("");
+    const [phoneNumber, setPhoneNumber] = useState("+91");
     const [otp, setOtp] = useState("");
     const [confirmationResult, setConfirmationResult] = useState(null);
     const [showOtpInput, setShowOtpInput] = useState(false);
@@ -88,9 +88,18 @@ export default function Login() {
             return;
         }
 
-        // Format phone number if needed, assuming user enters standard format or adding country code
-        // For now assuming user enters full number with +
-        const phoneNumberToUse = phoneNumber;
+        // Format phone number
+        let phoneNumberToUse = phoneNumber.trim().replace(/\s+/g, '');
+
+        // If it doesn't start with +, assume it's a 10-digit number and prepend +91
+        if (!phoneNumberToUse.startsWith('+')) {
+            if (phoneNumberToUse.length === 10) {
+                phoneNumberToUse = '+91' + phoneNumberToUse;
+            } else if (phoneNumberToUse.startsWith('91') && phoneNumberToUse.length === 12) {
+                // If user typed 91XXXXXXXXXX without +
+                phoneNumberToUse = '+' + phoneNumberToUse;
+            }
+        }
 
         signInWithPhoneNumber(auth, phoneNumberToUse, appVerifier)
             .then((confirmationResult) => {
@@ -227,12 +236,13 @@ export default function Login() {
             <div className="w-full lg:w-1/2 bg-white flex items-center justify-center p-8">
                 <div className="max-w-md w-full">
                     <div className="text-center mb-10">
-                        <h2 className="text-3xl font-bold text-black mb-3 tracking-tight">Log In</h2>
+                        <h2 className="text-3xl font-bold text-black mb-3 tracking-tight">Log In / Sign Up</h2>
                         <p className="text-gray-500 font-medium">
-                            Don&apos;t have an account?{" "}
+                            Enter your phone number to continue
+                            {/* Don&apos;t have an account?{" "}
                             <Link href="/register" replace={true} className="text-black underline hover:text-gray-700 transition-colors">
                                 Sign up
-                            </Link>
+                            </Link> */}
                         </p>
                     </div>
 

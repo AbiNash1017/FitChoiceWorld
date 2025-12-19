@@ -54,7 +54,7 @@ const Header = () => {
                         <nav className='hidden md:flex md:gap-6 lg:gap-10 items-center text-[var(--landing-text-secondary)]'>
                             <Link href='/' className='hover:text-[var(--landing-text-primary)] transition-colors'>Users</Link>
                             <Link href='/fitnesscenter' className='hover:text-[var(--landing-text-primary)] transition-colors'>Fitness Centers</Link>
-                            <Link href='/fitnesscenter#memberships' className='hover:text-[var(--landing-text-primary)] transition-colors'>Fitness Centre Pricing</Link>
+                            {/* <Link href='/fitnesscenter#memberships' className='hover:text-[var(--landing-text-primary)] transition-colors'>Fitness Centre Pricing</Link> */}
                             <Link href='/#contact' className='hover:text-[var(--landing-text-primary)] transition-colors'>Contact Us</Link>
                             <Link href='faq' className='hover:text-[var(--landing-text-primary)] transition-colors'>FAQ's</Link>
 
@@ -122,7 +122,6 @@ const Header = () => {
                         <div className='p-6 pt-20 space-y-6'>
                             <Link href='/' className='block text-[var(--landing-text-primary)] hover:text-black/70 transition-colors text-lg font-medium' onClick={toggleMenu}>Users</Link>
                             <Link href='/fitnesscenter' className='block text-[var(--landing-text-primary)] hover:text-black/70 transition-colors text-lg font-medium' onClick={toggleMenu}>Fitness Centers</Link>
-                            <Link href='/fitnesscenter#memberships' className='block text-[var(--landing-text-primary)] hover:text-black/70 transition-colors text-lg font-medium' onClick={toggleMenu}>Fitness Centre Pricing</Link>
                             <Link href='/#contact' className='block text-[var(--landing-text-primary)] hover:text-black transition-colors text-lg font-medium' onClick={toggleMenu}>Contact Us</Link>
                             <Link href='faq' className='block text-[var(--landing-text-primary)] hover:text-black/70 transition-colors text-lg font-medium' onClick={toggleMenu}>FAQ's</Link>
 

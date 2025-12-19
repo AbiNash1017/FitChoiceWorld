@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { adminAuth } from '@/lib/firebaseAdmin';
 import dbConnect from '@/lib/db';
 import User from '@/lib/models/User';
+import CenterAdminMetadata from '@/lib/models/CenterAdminMetadata';
 import FitnessCenter from '@/lib/models/fitnessCenters';
 
 export async function GET(request) {
@@ -23,13 +24,16 @@ export async function GET(request) {
             return NextResponse.json({ error: 'User not found' }, { status: 404 });
         }
 
-        // Check fitness center ownership
-        const fitnessCenter = await FitnessCenter.findOne({ owner_id: uid });
+        // Check fitness center ownership via CenterAdminMetadata
+        // This seems to be a mixed route (User + FitnessCenter).
+        // Safest is to check CenterAdminMetadata for this UID.
+        const metadata = await CenterAdminMetadata.findOne({ uid });
+        const fitnessCenterId = metadata?.fitness_center_id;
 
         // Convert user to object and add additional fields
         const userObject = user.toObject();
         userObject.onboarding_completed = user.isOnboardingComplete();
-        userObject.hasFitnessCenter = !!fitnessCenter;
+        userObject.hasFitnessCenter = !!fitnessCenterId;
 
         return NextResponse.json(userObject);
     } catch (error) {

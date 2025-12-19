@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { adminAuth } from '@/lib/firebaseAdmin';
 import dbConnect from '@/lib/db';
 import FitnessCenter from '@/lib/models/fitnessCenters';
+import CenterAdminMetadata from '@/lib/models/CenterAdminMetadata';
 
 export async function POST(request) {
     const authHeader = request.headers.get('Authorization');
@@ -39,12 +40,26 @@ export async function POST(request) {
                 postal_code: body.pincode,
                 country: 'India', // Defaulting to India as per context
             },
+            map_url: body.map_url,
             phone_number: body.contact_no,
             subscription_plan_id: body.plan_id,
             is_active: true,
         });
 
         await newFitnessCenter.save();
+
+        // Update CenterAdminMetadata with fitness_center_id and mark onboarding as complete
+        await CenterAdminMetadata.findOneAndUpdate(
+            { uid: uid },
+            {
+                fitness_center_id: newFitnessCenter._id,
+                onboarding_completed: true,
+                latitude: latitude,
+                longitude: longitude,
+                updated_at: new Date()
+            },
+            { new: true }
+        );
 
         return NextResponse.json({
             message: 'OK',

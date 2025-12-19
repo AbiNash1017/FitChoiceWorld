@@ -19,8 +19,15 @@ export async function PATCH(request) {
 
         await dbConnect();
 
-        // Find the fitness center by owner_id
-        const fitnessCenter = await FitnessCenter.findOne({ owner_id: uid });
+        // Fetch metadata to find the correct fitness center ID
+        const metadata = await CenterAdminMetadata.findOne({ uid });
+
+        if (!metadata || !metadata.fitness_center_id) {
+            return NextResponse.json({ error: 'Fitness center not linked to account' }, { status: 404 });
+        }
+
+        // Find the fitness center by _id from metadata
+        const fitnessCenter = await FitnessCenter.findById(metadata.fitness_center_id);
 
         if (!fitnessCenter) {
             return NextResponse.json({ error: 'Fitness center not found' }, { status: 404 });
@@ -59,6 +66,11 @@ export async function PATCH(request) {
         // Update amenities
         if (body.amenities && Array.isArray(body.amenities)) {
             fitnessCenter.amenities = body.amenities;
+        }
+
+        // Update Google Maps link
+        if (body.google_maps_link !== undefined) {
+            fitnessCenter.map_url = body.google_maps_link;
         }
 
         await fitnessCenter.save();

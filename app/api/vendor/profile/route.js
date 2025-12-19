@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { adminAuth } from '@/lib/firebaseAdmin';
 import dbConnect from '@/lib/db';
-import User from '@/lib/models/User';
+import CenterAdminMetadata from '@/lib/models/CenterAdminMetadata';
 import FitnessCenter from '@/lib/models/fitnessCenters';
 
 export async function GET(request) {
@@ -18,11 +18,19 @@ export async function GET(request) {
 
         await dbConnect();
 
-        // Fetch user profile
-        const userProfile = await User.findOne({ uid });
+        // Fetch user profile from CenterAdminMetadata
+        const userProfile = await CenterAdminMetadata.findOne({ uid });
 
         // Fetch fitness center
-        const fitnessCenter = await FitnessCenter.findOne({ owner_id: uid });
+        // Fetch fitness center using ID from metadata if available
+        let fitnessCenter = null;
+        if (userProfile.fitness_center_id) {
+            fitnessCenter = await FitnessCenter.findById(userProfile.fitness_center_id);
+        } else {
+            // Fallback or legacy check if needed, but per strict requirement assume metadata is source
+            // checking by owner_id only if id not in metadata might defeat the purpose of "single source", 
+            // but safe to leave blank if not in metadata.
+        }
 
         if (!userProfile) {
             return NextResponse.json({ error: 'User profile not found' }, { status: 404 });
