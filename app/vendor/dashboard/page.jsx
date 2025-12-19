@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Bell, Calendar, Home, MessageSquare, PieChart, Settings, Tag, Users, LucidePhoneCall, Users2 } from 'lucide-react'
+import { Bell, Calendar, Home, MessageSquare, PieChart, Settings, Tag, Users, LucidePhoneCall, Users2, Dumbbell } from 'lucide-react'
 import { Tabs, TabsContent } from "@/components/ui/tabs"
 import VendorSidebar from '@/app/components/forVendor/structure/VendorSidebar'
 import VendorHeader from '@/app/components/forVendor/structure/VendorHeader'
@@ -10,13 +10,12 @@ import VendorOverview from '@/app/components/forVendor/VendorOverview'
 import VendorBookingManagement from '@/app/components/forVendor/VendorBookingManagement'
 import VendorProfileManagement from '@/app/components/forVendor/VendorProfileManagement'
 import VendorSessionManagement from '@/app/components/forVendor/VendorSessionMangement'
-import VendorUserCommunication from '@/app/components/forVendor/VendorUserCommunication'
+// import VendorUserCommunication from '@/app/components/forVendor/VendorUserCommunication'
 import VendorContactUs from '@/app/components/forVendor/VendorContactUs'
 import VendorCouponsAndBanners from '@/app/components/forVendor/VendorCouponBanner'
 import VendorMembershipManagement from '@/app/components/forVendor/VendorMemberships'
 import { useAuth } from '@/app/context/AuthContext'
 import { useRouter } from 'next/navigation'
-
 
 const VendorDashboard = () => {
     const [activeTab, setActiveTab] = useState('overview')
@@ -25,11 +24,13 @@ const VendorDashboard = () => {
 
     const tabs = [
         { id: 'overview', label: 'Overview', icon: Home },
+        { id: 'facilities', label: 'Add Facilities', icon: Dumbbell },
         { id: 'facility_sessions', label: 'Facility Session Management', icon: Calendar },
         { id: 'bookings', label: 'Booking Management', icon: Users },
-        { id: 'coupon_banner', label: 'Coupons and Banners', icon: Tag },
-        { id: 'analytics', label: 'Analytics', icon: PieChart },
-        { id: 'memberships', label: 'Manage Memberships', icon: Users },
+        
+        // { id: 'coupon_banner', label: 'Coupons and Banners', icon: Tag },
+        // { id: 'analytics', label: 'Analytics', icon: PieChart },
+        // { id: 'memberships', label: 'Manage Memberships', icon: Users },
         // { id: 'communication', label: 'User Communication', icon: MessageSquare },       
         { id: 'profile', label: 'Profile', icon: Settings },
         { id: 'contact_us', label: 'Contact Admin', icon: LucidePhoneCall },
@@ -83,6 +84,12 @@ const VendorDashboard = () => {
                             <TabsContent value="overview"><VendorOverview /></TabsContent>
                             <TabsContent value="facility_sessions"><VendorSessionManagement /></TabsContent>
                             <TabsContent value="bookings"><VendorBookingManagement /></TabsContent>
+                            <TabsContent value="facilities">
+                                <div className="space-y-6">
+                                    <h2 className="text-2xl font-bold">Add Facilities</h2>
+                                    <p className="text-gray-600">Manage your fitness center facilities here. This section is coming soon.</p>
+                                </div>
+                            </TabsContent>
                             <TabsContent value="coupon_banner"><VendorCouponsAndBanners /></TabsContent>
                             <TabsContent value="analytics"><VendorAnalytics /></TabsContent>
                             <TabsContent value='memberships'><VendorMembershipManagement /></TabsContent>
