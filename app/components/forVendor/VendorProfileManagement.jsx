@@ -50,9 +50,11 @@ const VendorProfileManagement = () => {
     const [isEditingEmail, setIsEditingEmail] = useState(false);
     const [editedEmail, setEditedEmail] = useState('');
     const [pendingHeaderImage, setPendingHeaderImage] = useState(null);
+    const [pendingProfileImage, setPendingProfileImage] = useState(null);
     const [pendingFitnessImages, setPendingFitnessImages] = useState([]);
     const fileInputRef = useRef(null);
     const headerFileInputRef = useRef(null);
+    const profileFileInputRef = useRef(null);
     const { user, loading } = useAuth();
     const router = useRouter();
 
@@ -164,6 +166,15 @@ const VendorProfileManagement = () => {
                 ...prevDetails,
                 centre_images: prevDetails.centre_images.filter((_, i) => i !== index),
             }));
+        } else if (source === 'profile') {
+            setPendingProfileImage(null);
+        }
+    };
+
+    const handleProfileImageSelection = (e) => {
+        const file = e.target.files ? e.target.files[0] : null;
+        if (file) {
+            setPendingProfileImage(file);
         }
     };
 
@@ -189,12 +200,12 @@ const VendorProfileManagement = () => {
             let uploadedFitnessCentreImages = [];
 
             if (pendingHeaderImage) {
-                uploadedHeaderImage = await uploadImageToFirebase(pendingHeaderImage, 'fitness-centre-images/header');
+                uploadedHeaderImage = await uploadImageToFirebase(pendingHeaderImage, `fitness-centre-images/${user.uid}/header`);
             }
 
             if (pendingFitnessImages.length > 0) {
                 uploadedFitnessCentreImages = await Promise.all(pendingFitnessImages.map((img) => {
-                    return uploadImageToFirebase(img, 'fitness-centre-images');
+                    return uploadImageToFirebase(img, `fitness-centre-images/${user.uid}/gallery`);
                 }))
             }
 
@@ -233,6 +244,23 @@ const VendorProfileManagement = () => {
         try {
             if (!user) return;
             const token = await user.getIdToken();
+            let profileImageUrl = userProfile.profile_image_url;
+
+            if (pendingProfileImage) {
+                const uploadedUrl = await uploadImageToFirebase(pendingProfileImage, `user-profile-images/${user.uid}`);
+                if (uploadedUrl) {
+                    profileImageUrl = uploadedUrl;
+                }
+            }
+
+            const updatePayload = {};
+            if (editedEmail && editedEmail !== userProfile.email) updatePayload.email = editedEmail;
+            if (profileImageUrl !== userProfile.profile_image_url) updatePayload.profile_image_url = profileImageUrl;
+
+            if (Object.keys(updatePayload).length === 0) {
+                alert('No changes to save');
+                return;
+            }
 
             const response = await fetch('/api/user/update', {
                 method: 'PATCH',
@@ -240,17 +268,23 @@ const VendorProfileManagement = () => {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ email: editedEmail })
+                body: JSON.stringify(updatePayload)
             });
 
             if (!response.ok) throw new Error('Failed to update user profile');
 
-            alert('Email updated successfully');
-            setUserProfile(prev => ({ ...prev, email: editedEmail }));
+            alert('Profile updated successfully');
+            setUserProfile(prev => ({
+                ...prev,
+                email: updatePayload.email || prev.email,
+                profile_image_url: updatePayload.profile_image_url || prev.profile_image_url
+            }));
+
             setIsEditingEmail(false);
+            setPendingProfileImage(null);
         } catch (error) {
             console.error('Error updating user profile:', error);
-            alert('Failed to update email');
+            alert('Failed to update profile');
         }
     };
 
@@ -279,23 +313,71 @@ const VendorProfileManagement = () => {
                             {/* Profile Image */}
                             <div className="md:col-span-2 flex items-center gap-6">
                                 <div className="relative">
-                                    {userProfile.profile_image_url ? (
-                                        <img
-                                            src={userProfile.profile_image_url}
-                                            alt="Profile"
-                                            className="w-24 h-24 rounded-full object-cover border-2 border-gray-200"
-                                        />
+                                    {pendingProfileImage || userProfile.profile_image_url ? (
+                                        <div className="relative group w-24 h-24">
+                                            <img
+                                                src={pendingProfileImage ? URL.createObjectURL(pendingProfileImage) : userProfile.profile_image_url}
+                                                alt="Profile"
+                                                className="w-24 h-24 rounded-full object-cover border-2 border-gray-200"
+                                            />
+                                            <div className="absolute inset-0 bg-black bg-opacity-40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer"
+                                                onClick={() => profileFileInputRef.current?.click()}>
+                                                <Upload className="text-white w-6 h-6" />
+                                            </div>
+                                            {pendingProfileImage && (
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleRemovePendingImage('profile');
+                                                    }}
+                                                    className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600"
+                                                    title="Remove uploaded image"
+                                                >
+                                                    <X size={12} />
+                                                </button>
+                                            )}
+                                        </div>
                                     ) : (
-                                        <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center border-2 border-gray-200">
-                                            <User className="w-12 h-12 text-gray-400" />
+                                        <div
+                                            className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center border-2 border-dashed border-gray-300 cursor-pointer hover:border-black hover:bg-gray-200 transition-colors"
+                                            onClick={() => profileFileInputRef.current?.click()}
+                                        >
+                                            <Upload className="w-8 h-8 text-gray-400" />
                                         </div>
                                     )}
+                                    <input
+                                        type="file"
+                                        ref={profileFileInputRef}
+                                        onChange={handleProfileImageSelection}
+                                        accept="image/*"
+                                        className="hidden"
+                                    />
                                 </div>
                                 <div className="flex-1">
                                     <h3 className="text-2xl font-semibold text-gray-900">
                                         {userProfile.first_name} {userProfile.last_name}
                                     </h3>
                                     <p className="text-sm text-gray-500 mt-1">Fitness Center Owner</p>
+                                    {pendingProfileImage && (
+                                        <div className="mt-2 flex gap-2">
+                                            <Button
+                                                size="sm"
+                                                onClick={handleUpdateUserProfile}
+                                                className="bg-black hover:bg-gray-800 text-white h-8 text-xs"
+                                            >
+                                                Save New Image
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => setPendingProfileImage(null)}
+                                                className="h-8 text-xs"
+                                            >
+                                                Cancel
+                                            </Button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 

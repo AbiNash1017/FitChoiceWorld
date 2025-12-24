@@ -115,6 +115,7 @@ export async function PATCH(request) {
         if (body.first_name !== undefined) updateData.first_name = body.first_name;
         if (body.last_name !== undefined) updateData.last_name = body.last_name;
         if (body.phone_number !== undefined) updateData.admin_phone_number = body.phone_number;
+        if (body.profile_image_url !== undefined) updateData.profile_image_url = body.profile_image_url;
 
 
         updateData.updated_at = new Date();
