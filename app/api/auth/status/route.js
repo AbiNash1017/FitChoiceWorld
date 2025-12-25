@@ -86,7 +86,7 @@ export async function GET(request) {
             authenticated: true,
             onboardingCompleted: true, // Personal info (metadata) is confirmed complete above
             hasFitnessCenter,
-            nextStep: hasFitnessCenter ? '/vendor/dashboard' : '/createCentre'
+            nextStep: hasFitnessCenter ? '/dashboard' : '/createCentre'
         }, { status: 200 });
 
     } catch (error) {
