@@ -31,7 +31,7 @@ const Header = () => {
     }
 
     const handleVendorDashboard = () => {
-        router.push('/vendor/dashboard')
+        router.push('/dashboard')
         setIsMenuOpen(false)
     }
 
@@ -90,7 +90,7 @@ const Header = () => {
                                                 className="cursor-pointer hover:bg-gray-100 focus:bg-gray-100"
                                             >
                                                 <LayoutDashboard className="mr-2 h-4 w-4" />
-                                                <span>Vendor Dashboard</span>
+                                                <span>Dashboard</span>
                                             </DropdownMenuItem>
                                             <DropdownMenuSeparator className="bg-gray-100" />
                                             <DropdownMenuItem

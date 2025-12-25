@@ -15,14 +15,27 @@ import { useFitnessCentre } from '@/app/context/FitnessCentreContext'
 import { useAuth } from '@/app/context/AuthContext'
 import { format } from 'date-fns'
 
-const VendorSessionManagement = () => {
+const VendorSessionManagement = ({ facilityType }) => {
     const { fitnessCentreId } = useFitnessCentre()
     const { user, loading } = useAuth()
+
+    const facilityTypes = [
+        { label: "GYM", value: "FACILITY_TYPE_GYM" },
+        { label: "YOGA", value: "FACILITY_TYPE_YOGA" },
+        { label: "ZUMBA", value: "FACILITY_TYPE_ZUMBA" },
+        { label: "PERSONAL TRAINING", value: "FACILITY_TYPE_PERSONAL_TRAINING" },
+        { label: "SWIMMING", value: "FACILITY_TYPE_SWIMMING" }
+    ];
+
+    // Determine initial type from prop
+    const initialTypeValue = facilityType
+        ? facilityTypes.find(t => t.label === facilityType.toUpperCase())?.value
+        : '';
 
     // Session State
     const [isSaving, setIsSaving] = useState(false);
     const [newSession, setNewSession] = useState({
-        type: '',
+        type: initialTypeValue || '',
         name: '',
         description: '',
         duration_minutes: '',
@@ -36,6 +49,16 @@ const VendorSessionManagement = () => {
         couple_session_price: '',
     });
 
+    // Update if prop changes (e.g. switching tabs)
+    useEffect(() => {
+        if (facilityType) {
+            const mappedValue = facilityTypes.find(t => t.label === facilityType.toUpperCase())?.value;
+            if (mappedValue) {
+                setNewSession(prev => ({ ...prev, type: mappedValue }));
+            }
+        }
+    }, [facilityType]);
+
     // Schedule State
     // Format: { '0': [{ start_time: 'HH:mm', end_time: 'HH:mm' }], ... } // 0 = Sunday, 1 = Monday
     const [schedules, setSchedules] = useState({});
@@ -44,14 +67,6 @@ const VendorSessionManagement = () => {
 
     // Equipment input
     const [equipmentInput, setEquipmentInput] = useState('');
-
-    const facilityTypes = [
-        { label: "GYM", value: "FACILITY_TYPE_GYM" },
-        { label: "YOGA", value: "FACILITY_TYPE_YOGA" },
-        { label: "ZUMBA", value: "FACILITY_TYPE_ZUMBA" },
-        { label: "PERSONAL TRAINING", value: "FACILITY_TYPE_PERSONAL_TRAINING" },
-        { label: "SWIMMING", value: "FACILITY_TYPE_SWIMMING" }
-    ];
 
 
 
@@ -155,7 +170,7 @@ const VendorSessionManagement = () => {
 
         try {
             const token = await user.getIdToken();
-            const res = await fetch(`/api/vendor/session?type=${type}&fitness_center_id=${fitnessCentreId}`, {
+            const res = await fetch(`/api/dashboard/session?type=${type}&fitness_center_id=${fitnessCentreId}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
@@ -283,7 +298,7 @@ const VendorSessionManagement = () => {
         try {
             // Step 1: Create or Update Session
             const method = sessionId ? 'PUT' : 'POST';
-            const endpoint = `/api/vendor/session`; // Same endpoint
+            const endpoint = `/api/dashboard/session`; // Same endpoint
 
             const sessionResponse = await fetch(endpoint, {
                 method: method,
@@ -340,7 +355,7 @@ const VendorSessionManagement = () => {
                 availability: availabilityList
             };
 
-            const availabilityResponse = await fetch(`/api/vendor/availability`, {
+            const availabilityResponse = await fetch(`/api/dashboard/availability`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -393,8 +408,13 @@ const VendorSessionManagement = () => {
                             {/* Facility Type */}
                             <div className="space-y-2">
                                 <Label htmlFor="type">Facility Type <span className='text-black'>*</span></Label>
-                                <Select name="type" value={newSession.type} onValueChange={(value) => setNewSession({ ...newSession, type: value })}>
-                                    <SelectTrigger>
+                                <Select
+                                    name="type"
+                                    value={newSession.type}
+                                    onValueChange={(value) => setNewSession({ ...newSession, type: value })}
+                                    disabled={!!facilityType}
+                                >
+                                    <SelectTrigger className={facilityType ? "bg-gray-100" : ""}>
                                         <SelectValue placeholder="Select type" />
                                     </SelectTrigger>
                                     <SelectContent>

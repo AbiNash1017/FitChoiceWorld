@@ -1,5 +1,5 @@
 import dbConnect from "@/lib/db";
-import User from "@/lib/models/User";
+import CenterAdminMetadata from "@/lib/models/CenterAdminMetadata";
 import { NextResponse } from "next/server";
 
 export async function POST(req) {
@@ -11,20 +11,21 @@ export async function POST(req) {
             return NextResponse.json({ message: "Missing required fields" }, { status: 400 });
         }
 
-        let user = await User.findOne({ uid });
+        let user = await CenterAdminMetadata.findOne({ uid });
 
         if (!user) {
             const username = `fcw-${uid.slice(-10)}`;
-            user = await User.create({
+            user = await CenterAdminMetadata.create({
                 uid,
                 username,
-                phone_number: phoneNumber,
+                admin_phone_number: phoneNumber,
             });
         } else {
             // Update existing user if needed
             let isUpdated = false;
-            if (user.phone_number !== phoneNumber) {
-                user.phone_number = phoneNumber;
+            // Note: Schema uses admin_phone_number
+            if (user.admin_phone_number !== phoneNumber) {
+                user.admin_phone_number = phoneNumber;
                 isUpdated = true;
             }
             if (!user.username) {

@@ -68,6 +68,11 @@ export async function PATCH(request) {
             fitnessCenter.amenities = body.amenities;
         }
 
+        // Update available_facilities
+        if (body.available_facilities && Array.isArray(body.available_facilities)) {
+            fitnessCenter.available_facilities = body.available_facilities;
+        }
+
         // Update Google Maps link
         if (body.google_maps_link !== undefined) {
             fitnessCenter.map_url = body.google_maps_link;

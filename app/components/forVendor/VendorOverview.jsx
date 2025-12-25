@@ -55,7 +55,7 @@ const VendorOverview = () => {
         try {
             if (!user) return;
             const token = await user.getIdToken();
-            const response = await fetch(`/api/vendor/analytics`, {
+            const response = await fetch(`/api/dashboard/analytics`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',

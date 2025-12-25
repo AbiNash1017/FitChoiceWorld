@@ -61,7 +61,7 @@ const VendorProfileManagement = () => {
     const fetchVendorProfile = async () => {
         if (!user) return;
         const token = await user.getIdToken();
-        const response = await fetch(`/api/vendor/profile`, {
+        const response = await fetch(`/api/dashboard/profile`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -75,11 +75,11 @@ const VendorProfileManagement = () => {
                 setUserProfile({
                     first_name: data.userProfile.first_name || '',
                     last_name: data.userProfile.last_name || '',
-                    email: user.email || '',
-                    phone_number: data.userProfile.phone_number || '',
+                    email: data.userProfile.admin_email || user.email || '',
+                    phone_number: data.userProfile.admin_phone_number || '',
                     bio: data.userProfile.bio || '',
                     profile_image_url: data.userProfile.profile_image_url || '',
-                    user_since: data.userProfile.user_since || '',
+                    user_since: data.userProfile.created_at || '',
                     karma_points: data.userProfile.karma_points || 0,
                     ai_credits: data.userProfile.ai_credits || 0
                 });

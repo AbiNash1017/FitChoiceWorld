@@ -75,7 +75,7 @@ const VendorMembershipManagement = () => {
     const fetchMembershipPlans = async () => {
         if (!user) return;
         const token = await user.getIdToken();
-        const response = await fetch(`/api/vendor/membershipPlan`, {
+        const response = await fetch(`/api/dashboard/membershipPlan`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -94,7 +94,7 @@ const VendorMembershipManagement = () => {
         const token = await user.getIdToken();
         const { name, price, duration } = addPlan
         console.log(name, price, duration)
-        const response = await fetch(`/api/vendor/membershipPlan`, {
+        const response = await fetch(`/api/dashboard/membershipPlan`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -121,7 +121,7 @@ const VendorMembershipManagement = () => {
         console.log("plan", plan)
         if (!user) return;
         const token = await user.getIdToken();
-        const response = await fetch(`/api/vendor/membershipPlan/${plan.id}`, {
+        const response = await fetch(`/api/dashboard/membershipPlan/${plan.id}`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
@@ -146,7 +146,7 @@ const VendorMembershipManagement = () => {
         console.log(id)
         if (!user) return;
         const token = await user.getIdToken();
-        const response = await fetch(`/api/vendor/membershipPlan/${id}`, {
+        const response = await fetch(`/api/dashboard/membershipPlan/${id}`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -165,7 +165,7 @@ const VendorMembershipManagement = () => {
         console.log("emailorphone", emailOrPhone)
         if (!user) return;
         const token = await user.getIdToken();
-        const response = await fetch(`/api/vendor/getUserByEmailOrPhone?q=${emailOrPhone}`, {
+        const response = await fetch(`/api/dashboard/getUserByEmailOrPhone?q=${emailOrPhone}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -186,7 +186,7 @@ const VendorMembershipManagement = () => {
 
         if (!user) return;
         const token = await user.getIdToken();
-        const response = await fetch(`/api/vendor/membership`, {
+        const response = await fetch(`/api/dashboard/membership`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -217,7 +217,7 @@ const VendorMembershipManagement = () => {
     const fetchMemberships = async () => {
         if (!user) return;
         const token = await user.getIdToken();
-        const response = await fetch(`/api/vendor/membership`, {
+        const response = await fetch(`/api/dashboard/membership`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -239,7 +239,7 @@ const VendorMembershipManagement = () => {
         if (start_date) start_date = new Date(start_date).toISOString();
         if (end_date) end_date = new Date(end_date).toISOString();
         console.log(start_date, end_date)
-        const response = await fetch(`/api/vendor/membership/${membership.id}`, {
+        const response = await fetch(`/api/dashboard/membership/${membership.id}`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
@@ -265,7 +265,7 @@ const VendorMembershipManagement = () => {
         console.log(id)
         if (!user) return;
         const token = await user.getIdToken();
-        const response = await fetch(`/api/vendor/membership/${id}`, {
+        const response = await fetch(`/api/dashboard/membership/${id}`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',

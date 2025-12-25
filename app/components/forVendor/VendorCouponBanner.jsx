@@ -61,7 +61,7 @@ const VendorCouponsAndBanners = () => {
             if (!user) return;
             setLoading(true)
             const token = await user.getIdToken();
-            const response = await fetch(`/api/vendor/coupons`, {
+            const response = await fetch(`/api/dashboard/coupons`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -87,7 +87,7 @@ const VendorCouponsAndBanners = () => {
         try {
             if (!user) return;
             const token = await user.getIdToken();
-            const response = await fetch(`/api/vendor/banners`, {
+            const response = await fetch(`/api/dashboard/banners`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -160,7 +160,7 @@ const VendorCouponsAndBanners = () => {
             if (!user) return;
             const token = await user.getIdToken();
             console.log(fitnessCentreId)
-            const response = await fetch(`/api/vendor/requestCoupon`, {
+            const response = await fetch(`/api/dashboard/requestCoupon`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -225,7 +225,7 @@ const VendorCouponsAndBanners = () => {
             const { start_date, end_date, banner_title, banner_description } = banner;
 
             console.log('Sending banner:', JSON.stringify(banner));
-            const response = await fetch(`/api/vendor/requestBanner`, {
+            const response = await fetch(`/api/dashboard/requestBanner`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server';
 import { adminAuth } from '@/lib/firebaseAdmin';
 import dbConnect from '@/lib/db';
-import User from '@/lib/models/User';
+
 import CenterAdminMetadata from '@/lib/models/CenterAdminMetadata';
 import FitnessCenter from '@/lib/models/fitnessCenters';
 
@@ -52,6 +52,25 @@ export async function GET(request) {
             }, { status: 200 });
         }
 
+        // Check if onboarding is actually completed (metadata fields are filled)
+        // We check for minimal required fields
+        const isMetadataComplete = !!(
+            userMetadata.first_name &&
+            userMetadata.last_name &&
+            userMetadata.gender &&
+            userMetadata.city &&
+            userMetadata.state
+        );
+
+        if (!isMetadataComplete) {
+            return NextResponse.json({
+                authenticated: true,
+                onboardingCompleted: false,
+                hasFitnessCenter: false,
+                nextStep: '/onboard'
+            }, { status: 200 });
+        }
+
         // The onboarding flow has two stages based on CenterAdminMetadata:
         // 1. Has metadata but no fitness center → needs to create center → redirect to /createCentre  
         // 2. Has metadata AND fitness center → onboarding complete → redirect to /vendor/dashboard
@@ -65,7 +84,7 @@ export async function GET(request) {
 
         return NextResponse.json({
             authenticated: true,
-            onboardingCompleted: hasFitnessCenter, // Personal info is filled when metadata exists
+            onboardingCompleted: true, // Personal info (metadata) is confirmed complete above
             hasFitnessCenter,
             nextStep: hasFitnessCenter ? '/vendor/dashboard' : '/createCentre'
         }, { status: 200 });

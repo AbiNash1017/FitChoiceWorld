@@ -22,7 +22,7 @@ const VendorContactUs = () => {
         try {
             if (!user) return;
             const token = await user.getIdToken();
-            const response = await fetch(`/api/vendor/requestPayment`, {
+            const response = await fetch(`/api/dashboard/requestPayment`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',

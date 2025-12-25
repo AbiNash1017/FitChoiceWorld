@@ -309,7 +309,7 @@ export default function CreateCentre() {
                         // The status route returns authenticated:false or redirects to /onboard when no metadata exists
                         // So here we only need to check if they already have a center
                         if (status.hasFitnessCenter) {
-                            router.push('/vendor/dashboard');
+                            router.push('/dashboard');
                         }
                         // If status.nextStep explicitly says /onboard, respect it (means no metadata)
                         else if (status.nextStep === '/onboard') {
@@ -413,7 +413,7 @@ export default function CreateCentre() {
                 return;
             }
 
-            router.push(data.nextStep || '/vendor/dashboard')
+            router.push(data.nextStep || '/dashboard')
         } catch (err) {
             console.log(err)
             setProcessing(false)

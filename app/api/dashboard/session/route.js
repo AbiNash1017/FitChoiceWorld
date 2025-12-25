@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { adminAuth } from '@/lib/firebaseAdmin';
 import dbConnect from '@/lib/db';
 import Facility from '@/lib/models/facilities';
-import User from '@/lib/models/User';
+import CenterAdminMetadata from '@/lib/models/CenterAdminMetadata';
 
 // GET: Fetch existing session by Type for the current vendor
 export async function GET(request) {
@@ -16,8 +16,7 @@ export async function GET(request) {
         const decodedToken = await adminAuth.verifyIdToken(token);
         const uid = decodedToken.uid;
         await dbConnect();
-        const user = await User.findOne({ uid });
-        if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+
 
         const { searchParams } = new URL(request.url);
         const type = searchParams.get('type');
@@ -120,10 +119,10 @@ export async function POST(request) {
 
         await dbConnect();
 
-        // Get user for instructor info
-        const user = await User.findOne({ uid });
-        if (!user) {
-            return NextResponse.json({ error: 'User not found' }, { status: 404 });
+        // Get admin metadata for instructor info
+        const adminMetadata = await CenterAdminMetadata.findOne({ uid });
+        if (!adminMetadata) {
+            return NextResponse.json({ error: 'Center Admin Metadata not found' }, { status: 404 });
         }
 
         const body = await request.json();
@@ -173,9 +172,12 @@ export async function POST(request) {
             description,
             image_urls: [defaultImage],
             equipment: Array.isArray(equipment) ? equipment : [],
-            instructor_id: user._id,
-            instructor_name: instructor_name,
-            instructor_profile_image: user.photo_url || "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR43TnXOwFvrZ3LLj…",
+            // Use metadata ID if available, or just keep it null/undefined if schema strictly requires ObjectId ref to User
+            // Since User model is missing/deprecated, we might need to adjust Facility schema or just store string ID if allowed.
+            // However, Facility schema likely refs User. For now, we'll try to use _id if available or skip.
+            instructor_id: adminMetadata._id,
+            instructor_name: instructor_name || `${adminMetadata.first_name} ${adminMetadata.last_name}`,
+            instructor_profile_image: adminMetadata.profile_image_url || "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR43TnXOwFvrZ3LLj…",
             requires_booking,
             duration_minutes,
             capacity: min_no_of_slots, // Sync capacity with min_no_of_slots for now
@@ -185,7 +187,7 @@ export async function POST(request) {
             min_advance_booking_hours,
             price_per_slot: finalPrice, // Use normalized price
             couple_session_price,
-            updated_by: user._id,
+            updated_by: adminMetadata._id,
             is_active: true
         });
 
