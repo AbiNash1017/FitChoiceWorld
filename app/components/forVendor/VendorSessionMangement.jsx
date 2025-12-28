@@ -252,8 +252,8 @@ const VendorSessionManagement = ({ facilityType }) => {
                         const dayIndex = daysEnum.indexOf(daySch.day);
                         if (dayIndex !== -1 && daySch.time_slots) {
                             loadedSchedules[dayIndex] = daySch.time_slots.map(slot => ({
-                                start_time: slot.start_time,
-                                end_time: slot.end_time,
+                                start_time: slot.start_time || slot.start_time_utc,
+                                end_time: slot.end_time || slot.end_time_utc,
                                 capacity: slot.capacity,
                                 price: slot.price
                             }));

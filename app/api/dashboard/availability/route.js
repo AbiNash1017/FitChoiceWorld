@@ -26,6 +26,8 @@ export async function POST(request) {
         await dbConnect();
 
         const body = await request.json();
+        console.log("Received Availability Payload:", JSON.stringify(body, null, 2));
+
         const { availability } = body;
 
         if (!availability || !Array.isArray(availability) || availability.length === 0) {
@@ -47,6 +49,7 @@ export async function POST(request) {
         const scheduleMap = {};
 
         availability.forEach(slot => {
+            console.log("Processing Slot:", slot);
             const date = new Date(slot.day);
             const dayIndex = date.getDay(); // 0 = Sunday, 1 = Monday...
             const dayEnum = DAY_MAPPING[dayIndex];
@@ -56,18 +59,19 @@ export async function POST(request) {
             }
 
             scheduleMap[dayEnum].push({
-                start_time: slot.start_time, // e.g., "14:00"
-                // Assuming start_time_utc and end_time_utc are expected by schema or frontend later, 
-                // but schema has start_time/end_time as String. We'll stick to schema.
-                // If user example showed start_time_utc, we might need to change, but schema says start_time String.
-                // Waiting for user correction if needed, but schema in file view was start_time: String.
+                start_time: slot.start_time,
                 end_time: slot.end_time,
+                // Save to both fields to handle potential schema caching or migration issues
+                start_time_utc: slot.start_time,
+                end_time_utc: slot.end_time,
                 capacity: slot.capacity || facility.capacity,
                 price: slot.price || facility.price_per_slot,
                 instructor_id: facility.instructor_id,
                 instructor_name: facility.instructor_name
             });
         });
+
+        console.log("Constructed Schedule Map:", JSON.stringify(scheduleMap, null, 2));
 
         const newSchedules = Object.keys(scheduleMap).map(dayEnum => ({
             day: dayEnum,
