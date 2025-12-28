@@ -27,6 +27,24 @@ const VendorSessionManagement = ({ facilityType }) => {
         { label: "SWIMMING", value: "FACILITY_TYPE_SWIMMING" }
     ];
 
+    const EQUIPMENT_OPTIONS = {
+        "FACILITY_TYPE_GYM": [
+            "Treadmills", "Dumbbells", "Barbells", "Bench Press", "Squat Rack", "Ellipticals", "Rowing Machines", "Kettlebells", "Resistance Bands"
+        ],
+        "FACILITY_TYPE_YOGA": [
+            "Yoga Mats", "Yoga Blocks", "Yoga Straps", "Bolsters", "Blankets", "Meditation Cushions"
+        ],
+        "FACILITY_TYPE_ZUMBA": [
+            "Sound System", "Mirrors", "Dance Floor", "Weights"
+        ],
+        "FACILITY_TYPE_PERSONAL_TRAINING": [
+            "Weights", "Resistance Bands", "TRX", "Medicine Balls", "Kettlebells"
+        ],
+        "FACILITY_TYPE_SWIMMING": [
+            "Kickboards", "Pull Buoys", "Swim Fins", "Hand Paddles", "Snorkels", "Noodles"
+        ]
+    };
+
     // Determine initial type from prop
     const initialTypeValue = facilityType
         ? facilityTypes.find(t => t.label === facilityType.toUpperCase())?.value
@@ -63,19 +81,35 @@ const VendorSessionManagement = ({ facilityType }) => {
     // Format: { '0': [{ start_time: 'HH:mm', end_time: 'HH:mm' }], ... } // 0 = Sunday, 1 = Monday
     const [schedules, setSchedules] = useState({});
     const [selectedDate, setSelectedDate] = useState(new Date());
-    const [currentSlot, setCurrentSlot] = useState({ start_time: '', end_time: '' });
+    const [currentSlot, setCurrentSlot] = useState({
+        start_time: '',
+        end_time: '',
+        capacity: '',
+        price: ''
+    });
 
     // Equipment input
     const [equipmentInput, setEquipmentInput] = useState('');
 
 
 
-    const handleAddEquipment = () => {
-        if (equipmentInput.trim()) {
+    const handleEquipmentSelect = (value) => {
+        if (value && !newSession.equipment.includes(value)) {
             setNewSession(prev => ({
                 ...prev,
-                equipment: [...prev.equipment, equipmentInput.trim()]
+                equipment: [...prev.equipment, value]
             }));
+        }
+    };
+
+    const handleAddCustomEquipment = () => {
+        if (equipmentInput.trim()) {
+            if (!newSession.equipment.includes(equipmentInput.trim())) {
+                setNewSession(prev => ({
+                    ...prev,
+                    equipment: [...prev.equipment, equipmentInput.trim()]
+                }));
+            }
             setEquipmentInput('');
         }
     };
@@ -140,13 +174,20 @@ const VendorSessionManagement = ({ facilityType }) => {
         const dayIndex = selectedDate.getDay(); // 0-6
         const existingSlots = schedules[dayIndex] || [];
 
+        // Use slot specific values or fallback to session defaults
+        const slotToAdd = {
+            ...currentSlot,
+            capacity: currentSlot.capacity || newSession.min_no_of_slots,
+            price: currentSlot.price || newSession.per_session_price
+        };
+
         setSchedules({
             ...schedules,
-            [dayIndex]: [...existingSlots, currentSlot]
+            [dayIndex]: [...existingSlots, slotToAdd]
         });
 
-        // Reset current slot inputs
-        setCurrentSlot({ start_time: '', end_time: '' });
+        // Reset current slot inputs (keep empty to show placeholders)
+        setCurrentSlot({ start_time: '', end_time: '', capacity: '', price: '' });
     };
 
     const handleRemoveSlot = (dayIndex, index) => {
@@ -212,7 +253,9 @@ const VendorSessionManagement = ({ facilityType }) => {
                         if (dayIndex !== -1 && daySch.time_slots) {
                             loadedSchedules[dayIndex] = daySch.time_slots.map(slot => ({
                                 start_time: slot.start_time,
-                                end_time: slot.end_time
+                                end_time: slot.end_time,
+                                capacity: slot.capacity,
+                                price: slot.price
                             }));
                         }
                     });
@@ -347,6 +390,8 @@ const VendorSessionManagement = ({ facilityType }) => {
                     day: representativeDate,
                     start_time: slot.start_time,
                     end_time: slot.end_time,
+                    capacity: slot.capacity,
+                    price: slot.price,
                     session_id: activeSessionId
                 }));
             });
@@ -439,9 +484,8 @@ const VendorSessionManagement = ({ facilityType }) => {
 
 
 
-                            {/* Min Slots */}
                             <div className="space-y-2">
-                                <Label htmlFor="min_no_of_slots">Min Slots <span className='text-black'>*</span></Label>
+                                <Label htmlFor="min_no_of_slots">Total Capacity <span className='text-black'>*</span></Label>
                                 <Input id="min_no_of_slots" name="min_no_of_slots" type="number" min="1" required value={newSession.min_no_of_slots} onChange={handleInputChange} onWheel={(e) => e.target.blur()} />
                             </div>
 
@@ -494,30 +538,55 @@ const VendorSessionManagement = ({ facilityType }) => {
                         {/* Equipment */}
                         <div className="space-y-2">
                             <Label>Equipment Provided</Label>
-                            <div className="flex gap-2">
-                                <Input
-                                    value={equipmentInput}
-                                    onChange={(e) => setEquipmentInput(e.target.value)}
-                                    placeholder="Add equipment (e.g. Yoga Mat)"
-                                />
-
-                                <Button type="button" onClick={handleAddEquipment} variant="outline" className="bg-black px-4 text-white">
-                                    <Plus className="h-4 w-4" />
-                                    <span>Add</span>
-                                </Button>
-                            </div>
-                            {newSession.equipment.length > 0 && (
-                                <div className="flex flex-wrap gap-2 mt-2">
-                                    {newSession.equipment.map((item, index) => (
-                                        <div key={index} className="bg-gray-100 px-3 py-1 rounded-full flex items-center gap-2 text-sm">
-                                            <span>{item}</span>
-                                            <button type="button" onClick={() => handleRemoveEquipment(index)} className="text-gray-500 hover:text-red-600">
-                                                <X className="h-3 w-3" />
+                            <div className="flex flex-col gap-3">
+                                {/* Predefined Options */}
+                                {newSession.type && EQUIPMENT_OPTIONS[newSession.type] && (
+                                    <div className="flex flex-wrap gap-2 mb-2">
+                                        {EQUIPMENT_OPTIONS[newSession.type].map((item) => (
+                                            <button
+                                                key={item}
+                                                type="button"
+                                                onClick={() => handleEquipmentSelect(item)}
+                                                disabled={newSession.equipment.includes(item)}
+                                                className={cn(
+                                                    "px-3 py-1 text-sm rounded-full border transition-all",
+                                                    newSession.equipment.includes(item)
+                                                        ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+                                                        : "bg-white text-gray-700 border-gray-300 hover:border-black hover:text-black"
+                                                )}
+                                            >
+                                                + {item}
                                             </button>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Custom Input */}
+                                <div className="flex gap-2">
+                                    <Input
+                                        value={equipmentInput}
+                                        onChange={(e) => setEquipmentInput(e.target.value)}
+                                        placeholder="Add custom equipment..."
+                                        className="max-w-md"
+                                    />
+                                    <Button type="button" onClick={handleAddCustomEquipment} variant="outline" className="bg-black px-4 text-white hover:bg-gray-800">
+                                        <Plus className="h-4 w-4" />
+                                        <span>Add</span>
+                                    </Button>
                                 </div>
-                            )}
+                                {newSession.equipment.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                        {newSession.equipment.map((item, index) => (
+                                            <div key={index} className="bg-gray-100 px-3 py-1 rounded-full flex items-center gap-2 text-sm">
+                                                <span>{item}</span>
+                                                <button type="button" onClick={() => handleRemoveEquipment(index)} className="text-gray-500 hover:text-red-600">
+                                                    <X className="h-3 w-3" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {/* --- Advanced Schedule Builder Section --- */}
@@ -618,6 +687,30 @@ const VendorSessionManagement = ({ facilityType }) => {
                                         </div>
                                     </div>
 
+                                    {/* Slot Specific Details */}
+                                    <div className="grid grid-cols-2 gap-4 w-full">
+                                        <div className="space-y-1">
+                                            <Label className="text-xs font-semibold text-gray-500">Capacity</Label>
+                                            <Input
+                                                type="number"
+                                                placeholder={newSession.min_no_of_slots || "Default"}
+                                                value={currentSlot.capacity}
+                                                onChange={(e) => setCurrentSlot({ ...currentSlot, capacity: e.target.value })}
+                                                className="h-9 text-sm"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <Label className="text-xs font-semibold text-gray-500">Price</Label>
+                                            <Input
+                                                type="number"
+                                                placeholder={newSession.per_session_price || "Default"}
+                                                value={currentSlot.price}
+                                                onChange={(e) => setCurrentSlot({ ...currentSlot, price: e.target.value })}
+                                                className="h-9 text-sm"
+                                            />
+                                        </div>
+                                    </div>
+
                                     <Button
                                         type="button"
                                         onClick={handleAddSlot}
@@ -651,11 +744,16 @@ const VendorSessionManagement = ({ facilityType }) => {
                                                         <div key={idx} className="group flex items-center justify-between bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all">
                                                             <div className='flex items-center gap-3'>
                                                                 <div className='w-2 h-2 rounded-full bg-green-500'></div>
-                                                                <span className="font-bold text-gray-700 text-lg tracking-tight">
-                                                                    {slot.start_time}
-                                                                    <span className='text-gray-300 mx-2 font-normal'>—</span>
-                                                                    {slot.end_time}
-                                                                </span>
+                                                                <div className="flex flex-col">
+                                                                    <span className="font-bold text-gray-700 text-lg tracking-tight">
+                                                                        {slot.start_time}
+                                                                        <span className='text-gray-300 mx-2 font-normal'>—</span>
+                                                                        {slot.end_time}
+                                                                    </span>
+                                                                    <span className="text-xs text-gray-500 font-medium">
+                                                                        Cap: {slot.capacity || newSession.min_no_of_slots} • ₹{slot.price || newSession.per_session_price}
+                                                                    </span>
+                                                                </div>
                                                             </div>
                                                             <Button
                                                                 type="button"

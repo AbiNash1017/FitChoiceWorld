@@ -64,7 +64,7 @@ export async function POST(request) {
         return NextResponse.json({
             message: 'OK',
             fitnessCenter: newFitnessCenter,
-            nextStep: '/vendor/dashboard'
+            nextStep: '/dashboard'
         });
     } catch (error) {
         console.error('Error creating fitness center:', error);

@@ -62,8 +62,8 @@ export async function POST(request) {
                 // If user example showed start_time_utc, we might need to change, but schema says start_time String.
                 // Waiting for user correction if needed, but schema in file view was start_time: String.
                 end_time: slot.end_time,
-                capacity: facility.capacity,
-                price: facility.price_per_slot,
+                capacity: slot.capacity || facility.capacity,
+                price: slot.price || facility.price_per_slot,
                 instructor_id: facility.instructor_id,
                 instructor_name: facility.instructor_name
             });
@@ -95,6 +95,9 @@ export async function POST(request) {
 
     } catch (error) {
         console.error('Error adding availability:', error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        if (error.name === 'ValidationError') {
+            console.error("Validation Error Details:", JSON.stringify(error.errors, null, 2));
+        }
+        return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
     }
 }

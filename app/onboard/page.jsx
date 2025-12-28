@@ -47,7 +47,7 @@ export default function Onboard() {
                         // If onboarding is complete, redirect to next step
                         if (status.onboardingCompleted) {
                             if (status.hasFitnessCenter) {
-                                router.push('/vendor/dashboard');
+                                router.push('/dashboard');
                             } else {
                                 router.push('/createCentre');
                             }
