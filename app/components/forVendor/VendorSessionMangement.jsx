@@ -327,6 +327,13 @@ const VendorSessionManagement = ({ facilityType }) => {
         }
 
         if (!user) return;
+
+        if (!fitnessCentreId) {
+            alert('Fitness Center ID not found. Please refresh the page and try again.');
+            setIsSaving(false);
+            return;
+        }
+
         setIsSaving(true);
         const token = await user.getIdToken();
 
