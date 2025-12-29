@@ -57,14 +57,11 @@ const VendorSessionManagement = ({ facilityType }) => {
         name: '',
         description: '',
         duration_minutes: '',
-        min_no_of_slots: '',
         max_advance_booking_days: 30,
         min_advance_booking_hours: 2,
         instructor_name: '',
         requires_booking: true,
         equipment: [],
-        per_session_price: '',
-        couple_session_price: '',
     });
 
     // Update if prop changes (e.g. switching tabs)
@@ -80,12 +77,14 @@ const VendorSessionManagement = ({ facilityType }) => {
     // Schedule State
     // Format: { '0': [{ start_time: 'HH:mm', end_time: 'HH:mm' }], ... } // 0 = Sunday, 1 = Monday
     const [schedules, setSchedules] = useState({});
+    const [clearedDays, setClearedDays] = useState(new Set()); // Track days that are completely emptied
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [currentSlot, setCurrentSlot] = useState({
         start_time: '',
         end_time: '',
         capacity: '',
-        price: ''
+        price: '',
+        couples_price: '' // Added couples price
     });
 
     // Equipment input
@@ -171,14 +170,20 @@ const VendorSessionManagement = ({ facilityType }) => {
             return;
         }
 
+        if (!currentSlot.capacity || parseInt(currentSlot.capacity) <= 0 || !currentSlot.price) {
+            alert("Please enter a valid Capacity (Minimum 1) and Price for the slot.");
+            return;
+        }
+
         const dayIndex = selectedDate.getDay(); // 0-6
         const existingSlots = schedules[dayIndex] || [];
 
-        // Use slot specific values or fallback to session defaults
+        // Use slot specific values
         const slotToAdd = {
             ...currentSlot,
-            capacity: currentSlot.capacity || newSession.min_no_of_slots,
-            price: currentSlot.price || newSession.per_session_price
+            capacity: currentSlot.capacity,
+            price: currentSlot.price,
+            couples_price: currentSlot.couples_price
         };
 
         setSchedules({
@@ -187,7 +192,7 @@ const VendorSessionManagement = ({ facilityType }) => {
         });
 
         // Reset current slot inputs (keep empty to show placeholders)
-        setCurrentSlot({ start_time: '', end_time: '', capacity: '', price: '' });
+        setCurrentSlot({ start_time: '', end_time: '', capacity: '', price: '', couples_price: '' });
     };
 
     const handleRemoveSlot = (dayIndex, index) => {
@@ -196,6 +201,13 @@ const VendorSessionManagement = ({ facilityType }) => {
             const newSchedules = { ...schedules };
             delete newSchedules[dayIndex];
             setSchedules(newSchedules);
+
+            // Mark this day as cleared
+            setClearedDays(prev => {
+                const newSet = new Set(prev);
+                newSet.add(dayIndex);
+                return newSet;
+            });
         } else {
             setSchedules({
                 ...schedules,
@@ -228,14 +240,11 @@ const VendorSessionManagement = ({ facilityType }) => {
                     name: session.name,
                     description: session.description || '',
                     duration_minutes: session.duration_minutes || '',
-                    min_no_of_slots: session.min_no_of_slots || '',
                     max_advance_booking_days: session.max_advance_booking_days || 30,
                     min_advance_booking_hours: session.min_advance_booking_hours || 2,
                     instructor_name: session.instructor_name || '',
                     requires_booking: session.requires_booking,
                     equipment: session.equipment || [],
-                    per_session_price: session.price_per_slot || '',
-                    couple_session_price: session.couple_session_price || '', // If schema has it? Check schema.
                 });
 
                 // Populate Schedule
@@ -252,16 +261,18 @@ const VendorSessionManagement = ({ facilityType }) => {
                         const dayIndex = daysEnum.indexOf(daySch.day);
                         if (dayIndex !== -1 && daySch.time_slots) {
                             loadedSchedules[dayIndex] = daySch.time_slots.map(slot => ({
-                                start_time: slot.start_time || slot.start_time_utc,
-                                end_time: slot.end_time || slot.end_time_utc,
+                                start_time: slot.start_time_utc || slot.start_time,
+                                end_time: slot.end_time_utc || slot.end_time,
                                 capacity: slot.capacity,
                                 price: slot.price
                             }));
                         }
                     });
                     setSchedules(loadedSchedules);
+                    setClearedDays(new Set()); // Reset on load
                 } else {
                     setSchedules({});
+                    setClearedDays(new Set()); // Reset on load
                 }
             } else {
                 // Not found or error -> Reset to "New" mode
@@ -277,8 +288,8 @@ const VendorSessionManagement = ({ facilityType }) => {
                 if (res.status === 404) {
                     setNewSession(prev => ({
                         ...prev,
-                        name: '', description: '', duration_minutes: '', min_no_of_slots: '',
-                        equipment: [], per_session_price: '', couple_session_price: ''
+                        name: '', description: '', duration_minutes: '',
+                        equipment: []
                     }));
                     setSchedules({});
                 }
@@ -299,14 +310,13 @@ const VendorSessionManagement = ({ facilityType }) => {
         e.preventDefault();
 
         const {
-            type, name, description, duration_minutes, min_no_of_slots,
+            type, name, description, duration_minutes,
             max_advance_booking_days, min_advance_booking_hours,
-            instructor_name, equipment, per_session_price, couple_session_price
+            instructor_name, equipment
         } = newSession;
 
         // Validation
-        if (!type || !name || !description || !duration_minutes || !min_no_of_slots ||
-            !instructor_name || !per_session_price) {
+        if (!type || !name || !description || !duration_minutes || !instructor_name) {
             alert('Please fill all the required session fields!');
             return;
         }
@@ -320,6 +330,10 @@ const VendorSessionManagement = ({ facilityType }) => {
         setIsSaving(true);
         const token = await user.getIdToken();
 
+        // Derive session level defaults from the first created slot
+        const allSlots = Object.values(schedules).flat();
+        const representativeSlot = allSlots[0] || {};
+
         // 1. Create/Update Session Payload
         const sessionPayload = {
             session_id: sessionId, // Include ID if updating
@@ -330,11 +344,11 @@ const VendorSessionManagement = ({ facilityType }) => {
             instructor_name,
             requires_booking: newSession.requires_booking,
             duration_minutes: parseInt(duration_minutes),
-            min_no_of_slots: parseInt(min_no_of_slots),
+            min_no_of_slots: parseInt(representativeSlot.capacity || 0), // Use first slot capacity
             max_advance_booking_days: parseInt(max_advance_booking_days || 30),
             min_advance_booking_hours: parseInt(min_advance_booking_hours || 2),
-            price_per_slot: parseFloat(per_session_price),
-            couple_session_price: parseFloat(couple_session_price || 0),
+            price_per_slot: parseFloat(representativeSlot.price || 0), // Use first slot price
+            couple_session_price: parseFloat(representativeSlot.couples_price || 0), // Use first slot couples price
             fitness_center_id: fitnessCentreId
         };
 
@@ -397,7 +411,20 @@ const VendorSessionManagement = ({ facilityType }) => {
             });
 
             const availabilityPayload = {
-                availability: availabilityList
+                availability: availabilityList.map(slot => ({
+                    ...slot,
+                    couple_session_price: slot.couples_price || 0
+                })),
+                removed_days: Array.from(clearedDays)
+                    .filter(dayIdx => !schedules[dayIdx]) // Only send if STILL empty (user didn't re-add)
+                    .map(dayIdx => {
+                        const days = [
+                            'DAY_OF_WEEK_SUNDAY', 'DAY_OF_WEEK_MONDAY', 'DAY_OF_WEEK_TUESDAY',
+                            'DAY_OF_WEEK_WEDNESDAY', 'DAY_OF_WEEK_THURSDAY', 'DAY_OF_WEEK_FRIDAY',
+                            'DAY_OF_WEEK_SATURDAY'
+                        ];
+                        return days[dayIdx];
+                    })
             };
 
             const availabilityResponse = await fetch(`/api/dashboard/availability`, {
@@ -431,6 +458,49 @@ const VendorSessionManagement = ({ facilityType }) => {
         } catch (error) {
             console.error(error);
             alert(`Error: ${error.message}`);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleDeleteSession = async () => {
+        if (!sessionId || !user) return;
+
+        if (!confirm("Are you sure you want to delete this session? This action cannot be undone.")) {
+            return;
+        }
+
+        try {
+            setIsSaving(true);
+            const token = await user.getIdToken();
+            const res = await fetch(`/api/dashboard/session?session_id=${sessionId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (res.ok) {
+                alert("Session deleted successfully.");
+                // Reset form
+                setNewSession({
+                    type: '',
+                    name: '',
+                    description: '',
+                    duration_minutes: '',
+                    max_advance_booking_days: 30,
+                    min_advance_booking_hours: 2,
+                    instructor_name: '',
+                    requires_booking: true,
+                    equipment: [],
+                });
+                setSchedules({});
+                setSessionId(null);
+            } else {
+                const data = await res.json();
+                alert(`Failed to delete: ${data.error || data.message}`);
+            }
+        } catch (error) {
+            console.error("Delete error:", error);
+            alert("An error occurred while deleting.");
         } finally {
             setIsSaving(false);
         }
@@ -484,22 +554,7 @@ const VendorSessionManagement = ({ facilityType }) => {
 
 
 
-                            <div className="space-y-2">
-                                <Label htmlFor="min_no_of_slots">Total Capacity <span className='text-black'>*</span></Label>
-                                <Input id="min_no_of_slots" name="min_no_of_slots" type="number" min="1" required value={newSession.min_no_of_slots} onChange={handleInputChange} onWheel={(e) => e.target.blur()} />
-                            </div>
 
-                            {/* Price */}
-                            <div className="space-y-2">
-                                <Label htmlFor="per_session_price">Price per Session <span className='text-black'>*</span></Label>
-                                <Input id="per_session_price" name="per_session_price" type="number" min="0" required value={newSession.per_session_price} onChange={handleInputChange} onWheel={(e) => e.target.blur()} />
-                            </div>
-
-                            {/* Couple Price */}
-                            <div className="space-y-2">
-                                <Label htmlFor="couple_session_price">Couples Price (Optional)</Label>
-                                <Input id="couple_session_price" name="couple_session_price" type="number" min="0" value={newSession.couple_session_price} onChange={handleInputChange} onWheel={(e) => e.target.blur()} />
-                            </div>
 
                             {/* Requires Booking Checkbox */}
                             <div className="flex items-center space-x-2 pt-8">
@@ -617,7 +672,7 @@ const VendorSessionManagement = ({ facilityType }) => {
                                             min="15"
                                             placeholder="Enter duration first"
                                             required
-                                            value={newSession.duration_minutes}
+                                            value={newSession.duration_minutes || ''}
                                             onChange={handleInputChange}
                                             onWheel={(e) => e.target.blur()}
                                             className={cn(
@@ -677,13 +732,12 @@ const VendorSessionManagement = ({ facilityType }) => {
                                             />
                                         </div>
 
-                                        {/* End Time (Disabled) */}
+                                        {/* End Time (Display Only) */}
                                         <div className="flex flex-col items-center gap-2 pointer-events-none opacity-70">
                                             <Label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">End Time</Label>
-                                            <TimePickerWheel
-                                                value={currentSlot.end_time}
-                                                onChange={() => { }} // No-op
-                                            />
+                                            <div className="h-[120px] w-full flex items-center justify-center text-xl font-bold bg-gray-50 rounded-lg px-4 border">
+                                                {currentSlot.end_time || '--:--'}
+                                            </div>
                                         </div>
                                     </div>
 
@@ -693,8 +747,8 @@ const VendorSessionManagement = ({ facilityType }) => {
                                             <Label className="text-xs font-semibold text-gray-500">Capacity</Label>
                                             <Input
                                                 type="number"
-                                                placeholder={newSession.min_no_of_slots || "Default"}
-                                                value={currentSlot.capacity}
+                                                placeholder="Capacity"
+                                                value={currentSlot.capacity || ''}
                                                 onChange={(e) => setCurrentSlot({ ...currentSlot, capacity: e.target.value })}
                                                 className="h-9 text-sm"
                                             />
@@ -703,9 +757,19 @@ const VendorSessionManagement = ({ facilityType }) => {
                                             <Label className="text-xs font-semibold text-gray-500">Price</Label>
                                             <Input
                                                 type="number"
-                                                placeholder={newSession.per_session_price || "Default"}
-                                                value={currentSlot.price}
+                                                placeholder="Price"
+                                                value={currentSlot.price || ''}
                                                 onChange={(e) => setCurrentSlot({ ...currentSlot, price: e.target.value })}
+                                                className="h-9 text-sm"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <Label className="text-xs font-semibold text-gray-500">Couples Price</Label>
+                                            <Input
+                                                type="number"
+                                                placeholder="Optional"
+                                                value={currentSlot.couples_price || ''}
+                                                onChange={(e) => setCurrentSlot({ ...currentSlot, couples_price: e.target.value })}
                                                 className="h-9 text-sm"
                                             />
                                         </div>
@@ -751,7 +815,7 @@ const VendorSessionManagement = ({ facilityType }) => {
                                                                         {slot.end_time}
                                                                     </span>
                                                                     <span className="text-xs text-gray-500 font-medium">
-                                                                        Cap: {slot.capacity || newSession.min_no_of_slots} • ₹{slot.price || newSession.per_session_price}
+                                                                        Cap: {slot.capacity} • ₹{slot.price}
                                                                     </span>
                                                                 </div>
                                                             </div>
@@ -784,16 +848,32 @@ const VendorSessionManagement = ({ facilityType }) => {
                             </div>
                         </div>
 
-                        <Button type="submit" disabled={isSaving} className="w-full bg-black hover:bg-gray-800 text-white font-semibold py-6 text-lg mt-8 disabled:bg-gray-400 shadow-lg">
-                            {isSaving ? (
-                                <>
-                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                    Saving...
-                                </>
-                            ) : (
-                                "Save Session and Schedule"
+
+                        <div className="flex gap-4">
+                            <Button type="submit" disabled={isSaving} className="flex-1 bg-black hover:bg-gray-800 text-white font-semibold py-6 text-lg mt-8 disabled:bg-gray-400 shadow-lg">
+                                {isSaving ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                        Saving...
+                                    </>
+                                ) : (
+                                    "Save Session and Schedule"
+                                )}
+                            </Button>
+
+                            {sessionId && (
+                                <Button
+                                    type="button"
+                                    onClick={handleDeleteSession}
+                                    disabled={isSaving}
+                                    variant="destructive"
+                                    className="bg-red-600 hover:bg-red-700 text-white font-semibold py-6 text-lg mt-8 shadow-lg px-8"
+                                >
+                                    <Trash2 className="mr-2 h-5 w-5" />
+                                    Delete Session
+                                </Button>
                             )}
-                        </Button>
+                        </div>
                     </form>
                 </CardContent>
             </Card>

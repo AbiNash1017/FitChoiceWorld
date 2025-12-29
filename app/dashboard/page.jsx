@@ -14,12 +14,14 @@ import VendorSessionManagement from '@/app/components/forVendor/VendorSessionMan
 import VendorContactUs from '@/app/components/forVendor/VendorContactUs'
 import VendorCouponsAndBanners from '@/app/components/forVendor/VendorCouponBanner'
 import VendorMembershipManagement from '@/app/components/forVendor/VendorMemberships'
+import BusinessHoursPopup from '@/app/components/forVendor/BusinessHoursPopup'
 import { useAuth } from '@/app/context/AuthContext'
 import { useRouter } from 'next/navigation'
 
 const VendorDashboard = () => {
     const [activeTab, setActiveTab] = useState('overview')
     const [availableFacilities, setAvailableFacilities] = useState([])
+    const [showBusinessHoursPopup, setShowBusinessHoursPopup] = useState(false);
     const { user, loading } = useAuth();
     const router = useRouter();
 
@@ -45,6 +47,17 @@ const VendorDashboard = () => {
                 const data = await response.json();
                 if (data.fitnessCenter && data.fitnessCenter.available_facilities) {
                     setAvailableFacilities(data.fitnessCenter.available_facilities);
+                }
+
+                // Check for business hours
+                if (data.fitnessCenter) {
+                    const hasBusinessHours = data.fitnessCenter.business_hours &&
+                        data.fitnessCenter.business_hours.schedules &&
+                        data.fitnessCenter.business_hours.schedules.length > 0;
+
+                    if (!hasBusinessHours) {
+                        setShowBusinessHoursPopup(true);
+                    }
                 }
             }
         } catch (error) {
@@ -160,6 +173,13 @@ const VendorDashboard = () => {
             />
             <main className="flex-1 overflow-y-auto">
                 <VendorHeader />
+                <BusinessHoursPopup
+                    isOpen={showBusinessHoursPopup}
+                    onRedirect={() => {
+                        setActiveTab('profile');
+                        setShowBusinessHoursPopup(false);
+                    }}
+                />
                 <div className="p-6">
                     <Tabs value={activeTab} onValueChange={setActiveTab}>
                         <div>

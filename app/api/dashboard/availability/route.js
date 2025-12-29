@@ -28,9 +28,22 @@ export async function POST(request) {
         const body = await request.json();
         console.log("Received Availability Payload:", JSON.stringify(body, null, 2));
 
-        const { availability } = body;
+        const { availability, removed_days } = body;
+
+        // 1. Handle Removed Days (Explicit Deletion)
+        if (removed_days && Array.isArray(removed_days) && removed_days.length > 0 && availability && availability.length > 0) {
+            const sessionId = availability[0].session_id;
+            console.log("Removing days:", removed_days);
+            await Facility.findByIdAndUpdate(sessionId, {
+                $pull: { 'schedule.schedules': { day: { $in: removed_days } } }
+            });
+        }
 
         if (!availability || !Array.isArray(availability) || availability.length === 0) {
+            // If only removing days and no new availability (unlikely in this flow but possible), return success
+            if (removed_days && Array.isArray(removed_days) && removed_days.length > 0) {
+                return NextResponse.json({ message: 'Schedule updated successfully (removed days)' });
+            }
             return NextResponse.json({ message: 'No availability data provided' }, { status: 400 });
         }
 
@@ -59,13 +72,11 @@ export async function POST(request) {
             }
 
             scheduleMap[dayEnum].push({
-                start_time: slot.start_time,
-                end_time: slot.end_time,
-                // Save to both fields to handle potential schema caching or migration issues
                 start_time_utc: slot.start_time,
                 end_time_utc: slot.end_time,
                 capacity: slot.capacity || facility.capacity,
-                price: slot.price || facility.price_per_slot,
+                price: slot.price ? (slot.price * 1.3) : facility.price_per_slot,
+                couple_session_price: slot.couple_session_price ? (slot.couple_session_price * 1.3) : facility.couple_session_price,
                 instructor_id: facility.instructor_id,
                 instructor_name: facility.instructor_name
             });

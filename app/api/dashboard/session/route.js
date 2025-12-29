@@ -74,8 +74,12 @@ export async function PUT(request) {
         const updatesToApply = { ...updates };
 
         // Fix Price
-        if (price_per_slot !== undefined) updatesToApply.price_per_slot = price_per_slot;
-        else if (per_session_price !== undefined) updatesToApply.price_per_slot = per_session_price;
+        if (price_per_slot !== undefined) updatesToApply.price_per_slot = price_per_slot * 1.3;
+        else if (per_session_price !== undefined) updatesToApply.price_per_slot = per_session_price * 1.3;
+
+        if (body.couple_session_price !== undefined) {
+            updatesToApply.couple_session_price = body.couple_session_price * 1.3;
+        }
 
         // Sync capacity if slots change
         if (min_no_of_slots !== undefined) {
@@ -185,8 +189,8 @@ export async function POST(request) {
             icon_image_url: defaultImage,
             max_advance_booking_days,
             min_advance_booking_hours,
-            price_per_slot: finalPrice, // Use normalized price
-            couple_session_price,
+            price_per_slot: finalPrice ? finalPrice * 1.3 : 0, // Apply 30% markup
+            couple_session_price: couple_session_price ? couple_session_price * 1.3 : 0, // Apply 30% markup
             updated_by: adminMetadata._id,
             is_active: true
         });
@@ -198,5 +202,37 @@ export async function POST(request) {
     } catch (error) {
         console.error('Error creating facility session:', error);
         return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    }
+}
+
+export async function DELETE(request) {
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const token = authHeader.split('Bearer ')[1];
+
+    try {
+        await adminAuth.verifyIdToken(token);
+        await dbConnect();
+
+        const { searchParams } = new URL(request.url);
+        const session_id = searchParams.get('session_id');
+
+        if (!session_id) {
+            return NextResponse.json({ error: 'Session ID required' }, { status: 400 });
+        }
+
+        const deletedFacility = await Facility.findByIdAndDelete(session_id);
+
+        if (!deletedFacility) {
+            return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+        }
+
+        return NextResponse.json({ message: 'Session deleted successfully' });
+
+    } catch (error) {
+        console.error('Error deleting session:', error);
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

@@ -78,6 +78,11 @@ export async function PATCH(request) {
             fitnessCenter.map_url = body.google_maps_link;
         }
 
+        // Update business_hours
+        if (body.business_hours) {
+            fitnessCenter.business_hours = body.business_hours;
+        }
+
         await fitnessCenter.save();
 
         // Also update center_admin_metadata if needed

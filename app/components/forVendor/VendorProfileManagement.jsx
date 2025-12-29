@@ -6,11 +6,31 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader, Upload, X, User, Building2, Mail, Phone, Calendar } from 'lucide-react';
+import { Loader, Upload, X, User, Building2, Mail, Phone, Calendar, Clock, Plus, Trash2 } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
 import { storage } from '@/firebaseConfig';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { useRouter } from 'next/navigation';
+
+const DAYS_MAPPING = {
+    'DAY_OF_WEEK_MONDAY': 'Monday',
+    'DAY_OF_WEEK_TUESDAY': 'Tuesday',
+    'DAY_OF_WEEK_WEDNESDAY': 'Wednesday',
+    'DAY_OF_WEEK_THURSDAY': 'Thursday',
+    'DAY_OF_WEEK_FRIDAY': 'Friday',
+    'DAY_OF_WEEK_SATURDAY': 'Saturday',
+    'DAY_OF_WEEK_SUNDAY': 'Sunday',
+};
+
+const DEFAULT_SCHEDULES = [
+    { day: 'DAY_OF_WEEK_MONDAY', is_open: true, time_slots: [{ start_time: '06:00', end_time: '22:00' }] },
+    { day: 'DAY_OF_WEEK_TUESDAY', is_open: true, time_slots: [{ start_time: '06:00', end_time: '22:00' }] },
+    { day: 'DAY_OF_WEEK_WEDNESDAY', is_open: true, time_slots: [{ start_time: '06:00', end_time: '22:00' }] },
+    { day: 'DAY_OF_WEEK_THURSDAY', is_open: true, time_slots: [{ start_time: '06:00', end_time: '22:00' }] },
+    { day: 'DAY_OF_WEEK_FRIDAY', is_open: true, time_slots: [{ start_time: '06:00', end_time: '22:00' }] },
+    { day: 'DAY_OF_WEEK_SATURDAY', is_open: true, time_slots: [{ start_time: '06:00', end_time: '22:00' }] },
+    { day: 'DAY_OF_WEEK_SUNDAY', is_open: true, time_slots: [{ start_time: '06:00', end_time: '22:00' }] },
+];
 
 const VendorProfileManagement = () => {
     const [gymDetails, setGymDetails] = useState({
@@ -52,6 +72,11 @@ const VendorProfileManagement = () => {
     const [pendingHeaderImage, setPendingHeaderImage] = useState(null);
     const [pendingProfileImage, setPendingProfileImage] = useState(null);
     const [pendingFitnessImages, setPendingFitnessImages] = useState([]);
+    const [businessHours, setBusinessHours] = useState({
+        schedules: DEFAULT_SCHEDULES.map(s => ({ ...s, time_slots: s.time_slots.map(ts => ({ ...ts })) })),
+        holidays: []
+    });
+    const [newHoliday, setNewHoliday] = useState({ date: '', name: '', is_closed: true });
     const fileInputRef = useRef(null);
     const headerFileInputRef = useRef(null);
     const profileFileInputRef = useRef(null);
@@ -107,6 +132,14 @@ const VendorProfileManagement = () => {
                     state: data.fitnessCenter.state || '',
                     pincode: data.fitnessCenter.postal_code || ''
                 });
+                if (data.fitnessCenter.business_hours && data.fitnessCenter.business_hours.schedules && data.fitnessCenter.business_hours.schedules.length > 0) {
+                    setBusinessHours({
+                        schedules: data.fitnessCenter.business_hours.schedules,
+                        holidays: data.fitnessCenter.business_hours.holidays || []
+                    });
+                } else {
+                    setBusinessHours(prev => ({ ...prev, schedules: DEFAULT_SCHEDULES.map(s => ({ ...s, time_slots: s.time_slots.map(ts => ({ ...ts })) })) }));
+                }
             }
         }
     };
@@ -218,7 +251,9 @@ const VendorProfileManagement = () => {
                     ...gymDetails.centre_images,
                     ...uploadedFitnessCentreImages.filter((img) => img !== null)
                 ],
+                business_hours: businessHours,
             };
+
 
             const response = await fetch(`/api/fitness-center/update`, {
                 method: 'PATCH',
@@ -295,6 +330,35 @@ const VendorProfileManagement = () => {
             month: 'long',
             day: 'numeric'
         });
+    };
+
+    const handleScheduleChange = (index, field, value, slotIndex = 0) => {
+        const newSchedules = [...businessHours.schedules];
+        if (field === 'is_open') {
+            newSchedules[index].is_open = value;
+        } else if (field === 'start_time') {
+            newSchedules[index].time_slots[slotIndex].start_time = value;
+        } else if (field === 'end_time') {
+            newSchedules[index].time_slots[slotIndex].end_time = value;
+        }
+        setBusinessHours({ ...businessHours, schedules: newSchedules });
+    };
+
+    const handleAddHoliday = () => {
+        if (!newHoliday.date || !newHoliday.name) {
+            alert('Please fill in both date and holiday name');
+            return;
+        }
+        setBusinessHours({
+            ...businessHours,
+            holidays: [...businessHours.holidays, newHoliday]
+        });
+        setNewHoliday({ date: '', name: '', is_closed: true });
+    };
+
+    const handleRemoveHoliday = (index) => {
+        const newHolidays = businessHours.holidays.filter((_, i) => i !== index);
+        setBusinessHours({ ...businessHours, holidays: newHolidays });
     };
 
     return (
@@ -696,6 +760,116 @@ const VendorProfileManagement = () => {
                         <Loader className="animate-spin text-gray-400" />
                     </CardContent>
                 )}
+            </Card>
+
+            {/* Business Hours Card */}
+            <Card className="border-gray-200">
+                <CardHeader className="border-b bg-gray-50/50">
+                    <CardTitle className="flex items-center gap-2 text-xl">
+                        <Clock className="w-5 h-5 text-black" />
+                        Business Hours & Holidays
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-6 space-y-8">
+                    {/* Weekly Schedule */}
+                    <div>
+                        <h3 className="text-lg font-semibold mb-4">Weekly Schedule <span className="text-red-500">*</span></h3>
+                        <div className="space-y-4">
+                            {businessHours.schedules.map((schedule, index) => (
+                                <div key={schedule.day} className="flex flex-col md:flex-row md:items-center gap-4 p-3 bg-gray-50 rounded-lg">
+                                    <div className="w-32 font-medium">{DAYS_MAPPING[schedule.day]}</div>
+                                    <div className="flex items-center gap-2">
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                className="sr-only peer"
+                                                checked={schedule.is_open}
+                                                onChange={(e) => handleScheduleChange(index, 'is_open', e.target.checked)}
+                                            />
+                                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-black"></div>
+                                            <span className="ml-2 text-sm text-gray-700 font-medium">{schedule.is_open ? 'Open' : 'Closed'}</span>
+                                        </label>
+                                    </div>
+                                    {schedule.is_open && (
+                                        <div className="flex items-center gap-2 flex-1">
+                                            <Input
+                                                type="time"
+                                                value={schedule.time_slots[0]?.start_time || ''}
+                                                onChange={(e) => handleScheduleChange(index, 'start_time', e.target.value)}
+                                                className="w-32"
+                                            />
+                                            <span className="text-gray-500">to</span>
+                                            <Input
+                                                type="time"
+                                                value={schedule.time_slots[0]?.end_time || ''}
+                                                onChange={(e) => handleScheduleChange(index, 'end_time', e.target.value)}
+                                                className="w-32"
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Holidays */}
+                    <div>
+                        <h3 className="text-lg font-semibold mb-4">Holidays / Exceptions</h3>
+                        <div className="space-y-4">
+                            <div className="flex flex-col md:flex-row gap-4 items-end bg-gray-50 p-4 rounded-lg">
+                                <div className="flex-1 w-full">
+                                    <Label>Date</Label>
+                                    <Input
+                                        type="date"
+                                        value={newHoliday.date}
+                                        onChange={(e) => setNewHoliday({ ...newHoliday, date: e.target.value })}
+                                        className="mt-1"
+                                    />
+                                </div>
+                                <div className="flex-1 w-full">
+                                    <Label>Holiday Name</Label>
+                                    <Input
+                                        type="text"
+                                        placeholder="e.g. New Year"
+                                        value={newHoliday.name}
+                                        onChange={(e) => setNewHoliday({ ...newHoliday, name: e.target.value })}
+                                        className="mt-1"
+                                    />
+                                </div>
+                                <Button onClick={handleAddHoliday} type="button" className="bg-black text-white hover:bg-gray-800">
+                                    <Plus className="w-4 h-4 mr-1" /> Add Holiday
+                                </Button>
+                            </div>
+
+                            {businessHours.holidays.length > 0 && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {businessHours.holidays.map((holiday, index) => (
+                                        <div key={index} className="flex justify-between items-center p-3 border rounded-lg bg-white">
+                                            <div>
+                                                <p className="font-medium">{holiday.name}</p>
+                                                <p className="text-sm text-gray-500">{new Date(holiday.date).toLocaleDateString()}</p>
+                                            </div>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                onClick={() => handleRemoveHoliday(index)}
+                                                type="button"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    <div className="pt-4 flex justify-end">
+                        <Button type="button" onClick={handleUpdate} className="bg-black hover:bg-gray-800 text-white shadow-lg w-full md:w-auto px-8">
+                            Save Changes
+                        </Button>
+                    </div>
+                </CardContent>
             </Card>
         </div>
     );
