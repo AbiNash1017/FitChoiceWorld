@@ -23,13 +23,13 @@ const DAYS_MAPPING = {
 };
 
 const DEFAULT_SCHEDULES = [
-    { day: 'DAY_OF_WEEK_MONDAY', is_open: true, time_slots: [{ start_time: '06:00', end_time: '22:00' }] },
-    { day: 'DAY_OF_WEEK_TUESDAY', is_open: true, time_slots: [{ start_time: '06:00', end_time: '22:00' }] },
-    { day: 'DAY_OF_WEEK_WEDNESDAY', is_open: true, time_slots: [{ start_time: '06:00', end_time: '22:00' }] },
-    { day: 'DAY_OF_WEEK_THURSDAY', is_open: true, time_slots: [{ start_time: '06:00', end_time: '22:00' }] },
-    { day: 'DAY_OF_WEEK_FRIDAY', is_open: true, time_slots: [{ start_time: '06:00', end_time: '22:00' }] },
-    { day: 'DAY_OF_WEEK_SATURDAY', is_open: true, time_slots: [{ start_time: '06:00', end_time: '22:00' }] },
-    { day: 'DAY_OF_WEEK_SUNDAY', is_open: true, time_slots: [{ start_time: '06:00', end_time: '22:00' }] },
+    { day: 'DAY_OF_WEEK_MONDAY', is_open: false, time_slots: [{ start_time: '06:00', end_time: '22:00' }] },
+    { day: 'DAY_OF_WEEK_TUESDAY', is_open: false, time_slots: [{ start_time: '06:00', end_time: '22:00' }] },
+    { day: 'DAY_OF_WEEK_WEDNESDAY', is_open: false, time_slots: [{ start_time: '06:00', end_time: '22:00' }] },
+    { day: 'DAY_OF_WEEK_THURSDAY', is_open: false, time_slots: [{ start_time: '06:00', end_time: '22:00' }] },
+    { day: 'DAY_OF_WEEK_FRIDAY', is_open: false, time_slots: [{ start_time: '06:00', end_time: '22:00' }] },
+    { day: 'DAY_OF_WEEK_SATURDAY', is_open: false, time_slots: [{ start_time: '06:00', end_time: '22:00' }] },
+    { day: 'DAY_OF_WEEK_SUNDAY', is_open: false, time_slots: [{ start_time: '06:00', end_time: '22:00' }] },
 ];
 
 const VendorProfileManagement = () => {
