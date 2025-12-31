@@ -391,7 +391,8 @@ export default function CreateCentre() {
                 address,
                 plan_id: planId,
                 pincode,
-                contact_no,
+                pincode,
+                contact_no: `+91${contact_no}`,
                 map_url: mapUrl
             };
 
@@ -517,14 +518,19 @@ export default function CreateCentre() {
                                 required
                                 className="bg-gray-50 border-gray-200 text-black placeholder:text-gray-400 focus:border-black transition-colors py-6 rounded-xl"
                             />
-                            <Input
-                                type="tel" // Changed to tel for consistency
-                                placeholder="Contact Number"
-                                value={contact_no}
-                                onChange={(e) => setContact_no(e.target.value)}
-                                required
-                                className="bg-gray-50 border-gray-200 text-black placeholder:text-gray-400 focus:border-black transition-colors py-6 rounded-xl"
-                            />
+                            <div className="flex gap-2">
+                                <div className="flex items-center justify-center bg-gray-50 border border-gray-200 text-black px-4 rounded-xl font-medium min-w-[60px]">
+                                    +91
+                                </div>
+                                <Input
+                                    type="tel" // Changed to tel for consistency
+                                    placeholder="Contact Number"
+                                    value={contact_no}
+                                    onChange={(e) => setContact_no(e.target.value)}
+                                    required
+                                    className="bg-gray-50 border-gray-200 text-black placeholder:text-gray-400 focus:border-black transition-colors py-6 rounded-xl flex-1"
+                                />
+                            </div>
 
                             {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
                             <div>

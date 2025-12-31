@@ -344,6 +344,20 @@ const VendorProfileManagement = () => {
         setBusinessHours({ ...businessHours, schedules: newSchedules });
     };
 
+    const handleAddSlot = (dayIndex) => {
+        const newSchedules = [...businessHours.schedules];
+        newSchedules[dayIndex].time_slots.push({ start_time: '09:00', end_time: '17:00' });
+        setBusinessHours({ ...businessHours, schedules: newSchedules });
+    };
+
+    const handleRemoveSlot = (dayIndex, slotIndex) => {
+        const newSchedules = [...businessHours.schedules];
+        if (newSchedules[dayIndex].time_slots.length > 1) {
+            newSchedules[dayIndex].time_slots.splice(slotIndex, 1);
+            setBusinessHours({ ...businessHours, schedules: newSchedules });
+        }
+    };
+
     const handleAddHoliday = () => {
         if (!newHoliday.date || !newHoliday.name) {
             alert('Please fill in both date and holiday name');
@@ -791,20 +805,46 @@ const VendorProfileManagement = () => {
                                         </label>
                                     </div>
                                     {schedule.is_open && (
-                                        <div className="flex items-center gap-2 flex-1">
-                                            <Input
-                                                type="time"
-                                                value={schedule.time_slots[0]?.start_time || ''}
-                                                onChange={(e) => handleScheduleChange(index, 'start_time', e.target.value)}
-                                                className="w-32"
-                                            />
-                                            <span className="text-gray-500">to</span>
-                                            <Input
-                                                type="time"
-                                                value={schedule.time_slots[0]?.end_time || ''}
-                                                onChange={(e) => handleScheduleChange(index, 'end_time', e.target.value)}
-                                                className="w-32"
-                                            />
+                                        <div className="flex-1 flex flex-col gap-2">
+                                            {schedule.time_slots.map((slot, slotIndex) => (
+                                                <div key={slotIndex} className="flex items-center gap-2">
+                                                    <Input
+                                                        type="time"
+                                                        value={slot.start_time || ''}
+                                                        onChange={(e) => handleScheduleChange(index, 'start_time', e.target.value, slotIndex)}
+                                                        className="w-32"
+                                                    />
+                                                    <span className="text-gray-500">to</span>
+                                                    <Input
+                                                        type="time"
+                                                        value={slot.end_time || ''}
+                                                        onChange={(e) => handleScheduleChange(index, 'end_time', e.target.value, slotIndex)}
+                                                        className="w-32"
+                                                    />
+
+                                                    {schedule.time_slots.length > 1 && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => handleRemoveSlot(index, slotIndex)}
+                                                            className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    )}
+
+                                                    {slotIndex === schedule.time_slots.length - 1 && (
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => handleAddSlot(index)}
+                                                            className="gap-1 h-9 ml-2"
+                                                        >
+                                                            <Plus className="h-3 w-3" /> Add Slot
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            ))}
                                         </div>
                                     )}
                                 </div>

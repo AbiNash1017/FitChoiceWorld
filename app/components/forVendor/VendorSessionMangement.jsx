@@ -132,26 +132,17 @@ const VendorSessionManagement = ({ facilityType }) => {
     const calculateEndTime = (startTimeStr, durationMinutes) => {
         if (!startTimeStr || !durationMinutes) return '';
 
-        // Parse "hh:mm AA"
-        const [time, period] = startTimeStr.split(' ');
-        if (!time || !period) return '';
-
-        let [hours, minutes] = time.split(':').map(Number);
-        if (period === 'PM' && hours !== 12) hours += 12;
-        if (period === 'AM' && hours === 12) hours = 0;
+        // Parse "HH:mm" (24-hour)
+        const [hours, minutes] = startTimeStr.split(':').map(Number);
 
         // Add duration
         const totalMinutes = hours * 60 + minutes + parseInt(durationMinutes);
 
-        // Convert back
+        // Convert back to 24-hour format
         const endHours24 = Math.floor(totalMinutes / 60) % 24;
         const endMinutes = totalMinutes % 60;
 
-        const periodNew = endHours24 >= 12 ? 'PM' : 'AM';
-        let displayHours = endHours24 % 12;
-        if (displayHours === 0) displayHours = 12;
-
-        return `${displayHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')} ${periodNew}`;
+        return `${endHours24.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
     };
 
     // Schedule Handlers
