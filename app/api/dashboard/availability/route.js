@@ -72,8 +72,8 @@ export async function POST(request) {
             }
 
             scheduleMap[dayEnum].push({
-                start_time_utc: slot.start_time,
-                end_time_utc: slot.end_time,
+                start_time_utc: slot.start_time_utc,
+                end_time_utc: slot.end_time_utc,
                 capacity: slot.capacity || facility.capacity,
                 price: slot.price ? (slot.price * 1.3) : facility.price_per_slot,
                 couple_session_price: slot.couple_session_price ? (slot.couple_session_price * 1.3) : facility.couple_session_price,

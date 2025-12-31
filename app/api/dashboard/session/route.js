@@ -74,11 +74,11 @@ export async function PUT(request) {
         const updatesToApply = { ...updates };
 
         // Fix Price
-        if (price_per_slot !== undefined) updatesToApply.price_per_slot = Math.round(price_per_slot * 1.3);
-        else if (per_session_price !== undefined) updatesToApply.price_per_slot = Math.round(per_session_price * 1.3);
+        if (price_per_slot !== undefined) updatesToApply.price_per_slot = parseInt(Math.round(price_per_slot * 1.3));
+        else if (per_session_price !== undefined) updatesToApply.price_per_slot = parseInt(Math.round(per_session_price * 1.3));
 
         if (body.couple_session_price !== undefined) {
-            updatesToApply.couple_session_price = Math.round(body.couple_session_price * 1.3);
+            updatesToApply.couple_session_price = parseInt(Math.round(body.couple_session_price * 1.3));
         }
 
         // Sync capacity if slots change
@@ -189,8 +189,8 @@ export async function POST(request) {
             icon_image_url: defaultImage,
             max_advance_booking_days,
             min_advance_booking_hours,
-            price_per_slot: finalPrice ? Math.round(finalPrice * 1.3) : 0, // Apply 30% markup
-            couple_session_price: couple_session_price ? Math.round(couple_session_price * 1.3) : 0, // Apply 30% markup
+            price_per_slot: finalPrice ? parseInt(Math.round(finalPrice * 1.3)) : 0, // Apply 30% markup
+            couple_session_price: couple_session_price ? parseInt(Math.round(couple_session_price * 1.3)) : 0, // Apply 30% markup
             updated_by: adminMetadata._id,
             is_active: true
         });
