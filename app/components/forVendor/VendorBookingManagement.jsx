@@ -115,7 +115,7 @@ const VendorBookingManagement = () => {
         <div className="flex h-[calc(100vh-100px)] overflow-hidden relative gap-6">
             {/* Left Panel - Booking List */}
             <div
-                className={`transition-all duration-500 ease-in-out h-full overflow-y-auto ${selectedBooking ? 'w-2/3 pr-6' : 'w-full'
+                className={`transition-all duration-500 ease-in-out h-full flex flex-col ${selectedBooking ? 'w-2/3 pr-6' : 'w-full'
                     }`}
             >
                 <div className="flex items-center justify-between mb-4 px-2">
@@ -159,11 +159,11 @@ const VendorBookingManagement = () => {
                     </div>
                 </div>
 
-                <div className={`grid gap-6 p-2 ${selectedBooking ? 'grid-cols-1' : 'grid-cols-1'}`}>
+                <div className={`flex flex-col gap-6 p-2 overflow-y-auto flex-1 min-h-0 pb-10`}>
                     {filteredBookings.length > 0 ? filteredBookings.map((booking) => (
                         <Card
                             key={booking._id}
-                            className={`cursor-pointer group relative overflow-hidden border border-gray-100 shadow-md hover:shadow-2xl transition-all duration-300 bg-white rounded-3xl ${selectedBooking?._id === booking._id ? 'ring-2 ring-black ring-offset-2' : ''}`}
+                            className={`cursor-pointer group relative overflow-hidden border border-gray-100 shadow-md hover:shadow-2xl transition-all duration-300 bg-white rounded-3xl shrink-0 ${selectedBooking?._id === booking._id ? 'ring-2 ring-black ring-offset-2' : ''}`}
                             onClick={() => handleCardClick(booking)}
                         >
                             <CardContent className="p-0">
