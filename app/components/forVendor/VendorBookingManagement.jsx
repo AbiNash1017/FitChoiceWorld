@@ -4,11 +4,14 @@ import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Loader, Calendar, Clock, Users, CreditCard, MapPin, Smartphone, X } from 'lucide-react'
+import { Loader, Calendar as CalendarIcon, Clock, Users, CreditCard, MapPin, Smartphone, X, Dumbbell, Activity, ClipboardList } from 'lucide-react'
 import { useAuth } from '@/app/context/AuthContext'
 import Image from 'next/image'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
 
 const VendorBookingManagement = () => {
     const { user } = useAuth()
@@ -16,6 +19,13 @@ const VendorBookingManagement = () => {
     const [loading, setLoading] = useState(true)
     const [selectedBooking, setSelectedBooking] = useState(null)
     const [verificationPin, setVerificationPin] = useState('')
+    const [date, setDate] = useState()
+
+    const filteredBookings = bookings.filter(booking => {
+        if (!date) return true;
+        const bookingDate = new Date(booking.created_at);
+        return bookingDate.toDateString() === date.toDateString();
+    });
 
     const handleVerifyPin = () => {
         if (!verificationPin) return;
@@ -52,12 +62,10 @@ const VendorBookingManagement = () => {
                 const headers = { 'Authorization': `Bearer ${token}` };
 
                 // Fetch Bookings
-                const bookingsRes = await fetch('/api/user/bookings', { headers });
+                const bookingsRes = await fetch('/api/fitness-center/bookingHistory', { headers });
+
                 if (bookingsRes.ok) {
                     const data = await bookingsRes.json();
-                    if (data.bookings && data.bookings.length > 0) {
-                        console.log("First booking user data:", data.bookings[0].user_id);
-                    }
                     setBookings(data.bookings || []);
                 }
             } catch (error) {
@@ -110,73 +118,135 @@ const VendorBookingManagement = () => {
                 className={`transition-all duration-500 ease-in-out h-full overflow-y-auto ${selectedBooking ? 'w-2/3 pr-6' : 'w-full'
                     }`}
             >
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-4 px-2">
                     <h3 className="text-xl font-semibold text-gray-800">Bookings</h3>
+                    <div className="relative inline-block">
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant={"outline"}
+                                    className={cn(
+                                        "w-[240px] justify-start text-left font-normal border-gray-200 shadow-sm hover:bg-gray-50",
+                                        !date && "text-muted-foreground",
+                                        date && "pr-10"
+                                    )}
+                                >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {date ? format(date, "PPP") : <span>Filter by date</span>}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="end">
+                                <Calendar
+                                    mode="single"
+                                    selected={date}
+                                    onSelect={setDate}
+                                    initialFocus
+                                />
+                            </PopoverContent>
+                        </Popover>
+                        {date && (
+                            <span
+                                role="button"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 hover:bg-gray-100 rounded-full p-1 cursor-pointer z-50 text-gray-500 hover:text-gray-900 transition-colors"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDate(undefined);
+                                }}
+                            >
+                                <X className="h-4 w-4" />
+                            </span>
+                        )}
+                    </div>
                 </div>
 
                 <div className={`grid gap-6 p-2 ${selectedBooking ? 'grid-cols-1' : 'grid-cols-1'}`}>
-                    {bookings.length > 0 ? bookings.map((booking) => (
+                    {filteredBookings.length > 0 ? filteredBookings.map((booking) => (
                         <Card
                             key={booking._id}
                             className={`cursor-pointer group relative overflow-hidden border border-gray-100 shadow-md hover:shadow-2xl transition-all duration-300 bg-white rounded-3xl ${selectedBooking?._id === booking._id ? 'ring-2 ring-black ring-offset-2' : ''}`}
                             onClick={() => handleCardClick(booking)}
                         >
                             <CardContent className="p-0">
-                                <div className="p-8"> {/* Increased padding for more height */}
+                                <div className="p-8">
                                     <div className="flex items-start gap-6">
-                                        {/* Avatar with Ring - Centered */}
-                                        <div className="relative">
-                                            <div className="h-20 w-20 rounded-full p-1 bg-gray-100 shadow-inner">
-                                                <div className="h-full w-full rounded-full overflow-hidden bg-white flex items-center justify-center">
-                                                    <UserProfileImage
-                                                        url={booking.user_id?.profile_image_url}
-                                                        alt="User"
-                                                    />
+                                        {/* Facility Image */}
+                                        <div className="relative h-24 w-24 rounded-2xl overflow-hidden shadow-sm flex-shrink-0">
+                                            {booking.facility_id?.image_urls?.[0] ? (
+                                                <Image
+                                                    src={booking.facility_id.image_urls[0]}
+                                                    alt={booking.facility_id.name}
+                                                    fill
+                                                    className="object-cover"
+                                                    unoptimized
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-400">
+                                                    <Users className="w-8 h-8" />
                                                 </div>
-                                            </div>
-                                            <div className={`absolute -bottom-1 -right-1 h-6 w-6 border-4 border-white rounded-full ${booking.status === 'CONFIRMED' ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                                            )}
                                         </div>
 
-                                        {/* User Info */}
+                                        {/* Booking Info */}
                                         <div className="flex-1 min-w-0">
                                             <div className="flex justify-between items-start">
                                                 <div>
-                                                    <h4 className="font-bold text-2xl text-gray-900 leading-tight"> {/* Increased text size */}
-                                                        {booking.user_id?.first_name} {booking.user_id?.last_name || 'Guest User'}
+                                                    <h4 className="font-bold text-2xl text-gray-900 leading-tight">
+                                                        {booking.facility_id?.name}
                                                     </h4>
-                                                    <p className="text-base text-gray-500 font-medium mt-1 flex items-center gap-1.5"> {/* Increased text size */}
-                                                        <Smartphone className="w-4 h-4" />
-                                                        {booking.user_id?.phone_number || 'No Phone'}
+                                                    <p className="text-sm text-gray-500 font-medium mt-1">
+                                                        Booking ID: <span className="text-gray-700 font-mono">#{booking._id}</span>
                                                     </p>
                                                 </div>
                                                 <Badge
-                                                    className={`${getStatusColor(booking.status)} px-4 py-1.5 text-xs font-bold tracking-wide border-0 rounded-full shadow-sm`}
+                                                    className={`${getStatusColor(booking.payment_status)} px-4 py-1.5 text-xs font-bold tracking-wide border-0 rounded-full shadow-sm`}
                                                 >
-                                                    {booking.status || 'UNKNOWN'}
+                                                    {formatEnum(booking.payment_status) || 'UNKNOWN'}
                                                 </Badge>
                                             </div>
 
                                             {/* Metadata Grid */}
-                                            <div className="grid grid-cols-2 gap-5 mt-6"> {/* Increased gap and margin for height */}
-                                                <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100"> {/* Increased padding */}
-                                                    <div className="h-10 w-10 rounded-lg bg-white flex items-center justify-center shadow-sm text-gray-400">
-                                                        <Users className="w-5 h-5" />
+                                            <div className="grid grid-cols-2 gap-4 mt-6">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                                                        <Clock className="w-5 h-5" />
                                                     </div>
                                                     <div>
-                                                        <p className="text-xs text-gray-400 uppercase font-bold tracking-wider">Gender</p> {/* Increased text size */}
-                                                        <p className="text-base font-bold text-gray-700"> {/* Increased text size */}
-                                                            {formatEnum(booking.user_id?.gender) || 'Not Specified'}
+                                                        <p className="text-xs text-gray-400 uppercase font-bold tracking-wider">Start Time</p>
+                                                        <p className="text-lg font-bold text-gray-700">
+                                                            {format(new Date(booking.slot_start_time), 'MMM d, yyyy p')}
                                                         </p>
                                                     </div>
                                                 </div>
-                                                <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                                    <div className="h-10 w-10 rounded-lg bg-white flex items-center justify-center shadow-sm text-gray-400">
-                                                        <Calendar className="w-5 h-5" />
+                                                <div className="flex items-center gap-3">
+                                                    <div className="h-10 w-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
+                                                        <ClipboardList className="w-5 h-5" />
                                                     </div>
                                                     <div>
-                                                        <p className="text-xs text-gray-400 uppercase font-bold tracking-wider">Member Since</p>
-                                                        <p className="text-base font-bold text-gray-700">
-                                                            {booking.user_id?.user_since ? format(new Date(booking.user_id.user_since), 'MMM yyyy') : 'N/A'}
+                                                        <p className="text-xs text-gray-400 uppercase font-bold tracking-wider">Booking Status</p>
+                                                        <p className="text-lg font-bold text-gray-700">
+                                                            {formatEnum(booking.status)}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="h-10 w-10 rounded-full bg-green-50 flex items-center justify-center text-green-600">
+                                                        <Dumbbell className="w-5 h-5" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs text-gray-400 uppercase font-bold tracking-wider">Facility Type</p>
+                                                        <p className="text-lg font-bold text-gray-700">
+                                                            {formatEnum(booking.facility_id?.type)}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="h-10 w-10 rounded-full bg-orange-50 flex items-center justify-center text-orange-600">
+                                                        <Clock className="w-5 h-5" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs text-gray-400 uppercase font-bold tracking-wider">Duration</p>
+                                                        <p className="text-lg font-bold text-gray-700">
+                                                            {booking.facility_id?.duration_minutes} min
                                                         </p>
                                                     </div>
                                                 </div>
@@ -191,7 +261,7 @@ const VendorBookingManagement = () => {
                                         Tap to view details
                                     </span>
                                     <div className="flex items-center gap-2 text-base font-bold text-gray-900">
-                                        View Booking <div className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center hover:bg-black hover:text-white transition-all">→</div>
+                                        View More Details <div className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center hover:bg-black hover:text-white transition-all">→</div>
                                     </div>
                                 </div>
                             </CardContent>
@@ -227,50 +297,93 @@ const VendorBookingManagement = () => {
                         {/* Scrollable Content */}
                         <div className="overflow-y-auto flex-1 p-6 space-y-6">
 
+                            {/* User Info Section (Moved from Card) */}
+                            <div className="flex flex-col items-center bg-gray-50 rounded-xl p-6 border border-gray-100">
+                                <div className="relative mb-4">
+                                    <div className="h-24 w-24 rounded-full p-1 bg-white shadow-sm ring-1 ring-gray-200">
+                                        <div className="h-full w-full rounded-full overflow-hidden flex items-center justify-center bg-gray-100 text-gray-400">
+                                            <UserProfileImage
+                                                url={selectedBooking.user_id?.profile_image_url}
+                                                alt="User"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className={`absolute bottom-1 right-1 h-5 w-5 border-2 border-white rounded-full ${selectedBooking.status === 'CONFIRMED' ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                                </div>
+                                <h2 className="text-xl font-bold text-gray-900">
+                                    {selectedBooking.user_id?.first_name} {selectedBooking.user_id?.last_name || ''}
+                                </h2>
+                                <p className="text-sm text-gray-500 font-medium flex items-center gap-1 mt-1">
+                                    <Smartphone className="w-4 h-4" />
+                                    {selectedBooking.user_id?.phone_number || 'No Phone'}
+                                </p>
+
+                                <div className="grid grid-cols-2 gap-4 w-full mt-6">
+                                    <div className="bg-white p-3 rounded-lg border border-gray-100 text-center shadow-sm">
+                                        <p className="text-xs text-gray-400 uppercase font-bold">Gender</p>
+                                        <p className="font-semibold text-gray-700 text-sm">{formatEnum(selectedBooking.user_id?.gender) || 'N/A'}</p>
+                                    </div>
+                                    <div className="bg-white p-3 rounded-lg border border-gray-100 text-center shadow-sm">
+                                        <p className="text-xs text-gray-400 uppercase font-bold">Member Since</p>
+                                        <p className="font-semibold text-gray-700 text-sm">
+                                            {selectedBooking.user_id?.user_since ? format(new Date(selectedBooking.user_id.user_since), 'MMM yyyy') : 'N/A'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr className="border-gray-100" />
+
                             {/* PIN Verification Section */}
                             <div className="bg-gray-900 rounded-xl p-5 shadow-lg">
                                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 block">Verify User Entry</label>
                                 <div className="flex gap-3">
                                     <Input
-                                        placeholder="Enter User PIN"
+                                        placeholder="PIN"
                                         value={verificationPin}
                                         onChange={(e) => setVerificationPin(e.target.value)}
-                                        className="bg-white/10 border-gray-700 text-white placeholder:text-gray-500 focus-visible:ring-blue-500"
+                                        className="bg-white/10 border-gray-700 text-white placeholder:text-gray-500 focus-visible:ring-blue-500 h-14 text-2xl font-mono tracking-widest text-center"
                                     />
                                     <Button
                                         onClick={handleVerifyPin}
-                                        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold"
+                                        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold h-14 px-8"
                                     >
                                         Verify
                                     </Button>
                                 </div>
                             </div>
 
-                            {/* Slot Timing Highlight */}
-                            <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex justify-between items-center">
-                                <div>
-                                    <p className="text-xs text-blue-600 font-bold uppercase tracking-wider mb-1">Slot Start Time</p>
-                                    <h4 className="text-xl font-bold text-blue-900">
-                                        {format(new Date(selectedBooking.slot_start_time), 'p')}
-                                    </h4>
-                                    <p className="text-sm text-blue-700">
-                                        {format(new Date(selectedBooking.slot_start_time), 'PPP')}
-                                    </p>
-                                </div>
-                                <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
-                                    <Clock className="w-5 h-5 text-blue-600" />
+                            {/* Additional Booking Details */}
+                            <div>
+                                <h4 className="font-bold text-gray-900 text-xl mb-4 flex items-center gap-2">
+                                    <CalendarIcon className="w-5 h-5 mr-1 text-gray-500" />
+                                    Booking Information
+                                </h4>
+                                <div className="space-y-3">
+                                    <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
+                                        <span className="text-sm text-gray-500">Booking ID</span>
+                                        <span className="text-sm font-mono font-bold text-gray-800">#{selectedBooking._id}</span>
+                                    </div>
+                                    <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
+                                        <span className="text-sm text-gray-500">Start Time</span>
+                                        <span className="text-sm font-bold text-gray-800">{format(new Date(selectedBooking.slot_start_time), 'PPP p')}</span>
+                                    </div>
+                                    <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
+                                        <span className="text-sm text-gray-500">Instructor</span>
+                                        <span className="text-sm font-bold text-gray-800">{selectedBooking.facility_id?.instructor_name || 'N/A'}</span>
+                                    </div>
                                 </div>
                             </div>
 
                             {/* Facility Type Badge */}
-                            <div className="flex justify-start">
+                            {/* <div className="flex justify-start">
                                 <Badge className="bg-black hover:bg-black text-white border-none text-md px-6 py-1.5 shadow-sm">
-                                    {formatEnum(selectedBooking.facility_id?.type)}
+                                    Facility Type:  {formatEnum(selectedBooking.facility_id?.type)}
                                 </Badge>
-                            </div>
+                            </div> */}
 
                             {/* Facility Image */}
-                            <div className="relative h-48 w-full rounded-xl overflow-hidden shadow-md group">
+                            {/* <div className="relative h-48 w-full rounded-xl overflow-hidden shadow-md group">
                                 {selectedBooking.facility_id?.image_urls?.[0] ? (
                                     <Image
                                         src={selectedBooking.facility_id.image_urls[0]}
@@ -284,17 +397,18 @@ const VendorBookingManagement = () => {
                                         <Users className="w-12 h-12" />
                                     </div>
                                 )}
-                            </div>
+                            </div> */}
 
                             {/* Main Info */}
                             <div>
-                                <h2 className="text-2xl font-bold text-gray-900 leading-tight mb-2">
+                                <p className="text-xl text-gray-400 uppercase font-bold tracking-wider mb-1">Facility Name</p>
+                                <h2 className="text-xl font-semibold text-gray-900 leading-tight mb-2">
                                     {selectedBooking.facility_id?.name}
                                 </h2>
-                                <h3 className="text-lg font-semibold text-gray-700 mb-1">
+                                {/* <h3 className="text-lg font-semibold text-gray-700 mb-1">
                                     {selectedBooking.fitness_center_id?.name}
-                                </h3>
-                               
+                                </h3> */}
+
                             </div>
 
                             {/* Stats Grid */}
@@ -304,8 +418,8 @@ const VendorBookingManagement = () => {
                                     <p className="font-semibold">{selectedBooking.facility_id?.duration_minutes || 60} min</p>
                                 </div>
                                 <div className="p-3 bg-purple-50 text-purple-900 rounded-lg">
-                                    <p className="text-xs uppercase tracking-wide opacity-70 mb-1">Instructor</p>
-                                    <p className="font-semibold truncate">{selectedBooking.facility_id?.instructor_name || 'N/A'}</p>
+                                    <p className="text-xs uppercase tracking-wide opacity-70 mb-1">Booking Status</p>
+                                    <p className="font-semibold truncate">{formatEnum(selectedBooking.status) || 'N/A'}</p>
                                 </div>
                             </div>
 
