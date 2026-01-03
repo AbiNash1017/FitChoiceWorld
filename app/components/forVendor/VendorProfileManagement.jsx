@@ -23,13 +23,13 @@ const DAYS_MAPPING = {
 };
 
 const DEFAULT_SCHEDULES = [
-    { day: 'DAY_OF_WEEK_MONDAY', is_open: false, time_slots: [{ start_time: '06:00', end_time: '22:00' }] },
-    { day: 'DAY_OF_WEEK_TUESDAY', is_open: false, time_slots: [{ start_time: '06:00', end_time: '22:00' }] },
-    { day: 'DAY_OF_WEEK_WEDNESDAY', is_open: false, time_slots: [{ start_time: '06:00', end_time: '22:00' }] },
-    { day: 'DAY_OF_WEEK_THURSDAY', is_open: false, time_slots: [{ start_time: '06:00', end_time: '22:00' }] },
-    { day: 'DAY_OF_WEEK_FRIDAY', is_open: false, time_slots: [{ start_time: '06:00', end_time: '22:00' }] },
-    { day: 'DAY_OF_WEEK_SATURDAY', is_open: false, time_slots: [{ start_time: '06:00', end_time: '22:00' }] },
-    { day: 'DAY_OF_WEEK_SUNDAY', is_open: false, time_slots: [{ start_time: '06:00', end_time: '22:00' }] },
+    { day: 'DAY_OF_WEEK_MONDAY', is_open: false, time_slots: [{ start_time_utc: '06:00', end_time_utc: '22:00' }] },
+    { day: 'DAY_OF_WEEK_TUESDAY', is_open: false, time_slots: [{ start_time_utc: '06:00', end_time_utc: '22:00' }] },
+    { day: 'DAY_OF_WEEK_WEDNESDAY', is_open: false, time_slots: [{ start_time_utc: '06:00', end_time_utc: '22:00' }] },
+    { day: 'DAY_OF_WEEK_THURSDAY', is_open: false, time_slots: [{ start_time_utc: '06:00', end_time_utc: '22:00' }] },
+    { day: 'DAY_OF_WEEK_FRIDAY', is_open: false, time_slots: [{ start_time_utc: '06:00', end_time_utc: '22:00' }] },
+    { day: 'DAY_OF_WEEK_SATURDAY', is_open: false, time_slots: [{ start_time_utc: '06:00', end_time_utc: '22:00' }] },
+    { day: 'DAY_OF_WEEK_SUNDAY', is_open: false, time_slots: [{ start_time_utc: '06:00', end_time_utc: '22:00' }] },
 ];
 
 const VendorProfileManagement = () => {
@@ -133,8 +133,24 @@ const VendorProfileManagement = () => {
                     pincode: data.fitnessCenter.postal_code || ''
                 });
                 if (data.fitnessCenter.business_hours && data.fitnessCenter.business_hours.schedules && data.fitnessCenter.business_hours.schedules.length > 0) {
+                    // Normalize schedules to ensure time_slots use start_time_utc/end_time_utc and filter out null entries
+                    const normalizedSchedules = data.fitnessCenter.business_hours.schedules.map(schedule => ({
+                        ...schedule,
+                        time_slots: (schedule.time_slots || [])
+                            .filter(slot => slot !== null && slot !== undefined)
+                            .map(slot => ({
+                                start_time_utc: slot.start_time_utc || slot.start_time || '06:00',
+                                end_time_utc: slot.end_time_utc || slot.end_time || '22:00'
+                            }))
+                    }));
+                    // Ensure each schedule has at least one time slot
+                    normalizedSchedules.forEach(schedule => {
+                        if (!schedule.time_slots || schedule.time_slots.length === 0) {
+                            schedule.time_slots = [{ start_time_utc: '06:00', end_time_utc: '22:00' }];
+                        }
+                    });
                     setBusinessHours({
-                        schedules: data.fitnessCenter.business_hours.schedules,
+                        schedules: normalizedSchedules,
                         holidays: data.fitnessCenter.business_hours.holidays || []
                     });
                 } else {
@@ -336,17 +352,17 @@ const VendorProfileManagement = () => {
         const newSchedules = [...businessHours.schedules];
         if (field === 'is_open') {
             newSchedules[index].is_open = value;
-        } else if (field === 'start_time') {
-            newSchedules[index].time_slots[slotIndex].start_time = value;
-        } else if (field === 'end_time') {
-            newSchedules[index].time_slots[slotIndex].end_time = value;
+        } else if (field === 'start_time_utc') {
+            newSchedules[index].time_slots[slotIndex].start_time_utc = value;
+        } else if (field === 'end_time_utc') {
+            newSchedules[index].time_slots[slotIndex].end_time_utc = value;
         }
         setBusinessHours({ ...businessHours, schedules: newSchedules });
     };
 
     const handleAddSlot = (dayIndex) => {
         const newSchedules = [...businessHours.schedules];
-        newSchedules[dayIndex].time_slots.push({ start_time: '09:00', end_time: '17:00' });
+        newSchedules[dayIndex].time_slots.push({ start_time_utc: '09:00', end_time_utc: '17:00' });
         setBusinessHours({ ...businessHours, schedules: newSchedules });
     };
 
@@ -810,15 +826,15 @@ const VendorProfileManagement = () => {
                                                 <div key={slotIndex} className="flex items-center gap-2">
                                                     <Input
                                                         type="time"
-                                                        value={slot.start_time || ''}
-                                                        onChange={(e) => handleScheduleChange(index, 'start_time', e.target.value, slotIndex)}
+                                                        value={slot.start_time_utc || ''}
+                                                        onChange={(e) => handleScheduleChange(index, 'start_time_utc', e.target.value, slotIndex)}
                                                         className="w-32"
                                                     />
                                                     <span className="text-gray-500">to</span>
                                                     <Input
                                                         type="time"
-                                                        value={slot.end_time || ''}
-                                                        onChange={(e) => handleScheduleChange(index, 'end_time', e.target.value, slotIndex)}
+                                                        value={slot.end_time_utc || ''}
+                                                        onChange={(e) => handleScheduleChange(index, 'end_time_utc', e.target.value, slotIndex)}
                                                         className="w-32"
                                                     />
 
